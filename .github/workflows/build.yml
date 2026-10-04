@@ -25,6 +25,44 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: npm run e2e
 
+  android:
+    name: Android APK and emulator tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - run: npm ci
+      - name: Accept SDK licences (lets Gradle fetch any missing platform)
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+      - name: Build the debug APK
+        run: npm run apk -w @muster/mobile
+      - name: Enable KVM for the emulator
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Run the app on an emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
+          script: npx playwright test -c playwright.android.config.ts
+      - uses: actions/upload-artifact@v4
+        with:
+          name: muster-android-debug
+          path: packages/mobile/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+
   build:
     strategy:
       fail-fast: false

@@ -6,7 +6,7 @@ A local-first companion app for tabletop skirmish army building. Build lists wit
 
 What it does today: build and validate army lists, browse every unit with a search language (`f>=5 r:terror army:vale or is:hero`, help is built into the Units view), read the rules and wargear reference, export/import lists, print or save a PDF, track a game at the table (wounds, Might/Will/Fate, break point, turn, victory points, undo, resume), and work out fight odds (exact one-on-one, simulated squad vs squad) using the combat rules in your pack.
 
-Targets: Windows and Linux desktop, and Android. See [PLAN.md](PLAN.md) for the roadmap and status.
+Targets: Windows, Linux and Android. See [PLAN.md](PLAN.md) for the roadmap and status.
 
 ## Develop
 
@@ -23,7 +23,19 @@ npm run validate-pack -- packs/sample.json
 |---|---|
 | `packages/shared` | Pure TypeScript rules engine: pack schema, list model, validator, text import/export. |
 | `packages/web` | React + Vite UI shared by every platform. |
+| `packages/mobile` | Capacitor wrapper that builds the Android APK around the same UI. No permissions at all (it cannot touch the network); print and share go through two small native bridges. |
 | `packages/desktop` | Electron shell for Windows and Linux. Serves the built UI from a sandboxed `app://` protocol (no local server, no network), with a native Save-as-PDF. |
+
+### Android app
+
+```
+npm run apk                  # debug APK: packages/mobile/android/app/build/outputs/apk/debug/app-debug.apk (sideload to try)
+npm run e2e:android          # builds it, then drives the real app on the one emulator/phone adb can see
+```
+
+Needs a JDK 21 and the Android SDK (platform 36); set `JAVA_HOME` and `ANDROID_HOME`. The debug APK is signed with Android's debug key. A release build is signed from a keystore **kept outside the repository**, given by `ANDROID_KEYSTORE_PATH`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS` and `ANDROID_KEY_PASSWORD`, then `npm run release -w @muster/mobile`.
+
+A phone's web view can neither print nor save files, so on Android "Print / PDF" opens the system print dialog (which can save a PDF) and "Share list" opens the share sheet. Android writes web storage to disk about two seconds after a change, so a process killed inside that window loses the last edit; ordinary exits (Back, Home, swiping the app away) are safe.
 
 ### Desktop app
 

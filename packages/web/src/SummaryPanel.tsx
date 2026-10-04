@@ -6,9 +6,11 @@ interface Props {
   onDownload: () => void;
   onPrint: () => void;
   copied: boolean;
+  /** On a phone the list is shared, not downloaded. */
+  canShare?: boolean;
 }
 
-export function SummaryPanel({ validation, onCopy, onDownload, onPrint, copied }: Props) {
+export function SummaryPanel({ validation, onCopy, onDownload, onPrint, copied, canShare }: Props) {
   const { summary: s, issues, valid } = validation;
   const pct = s.limit > 0 ? Math.min(100, (s.points / s.limit) * 100) : 0;
   const listLevel = issues.filter((i) => !i.warband);
@@ -41,7 +43,7 @@ export function SummaryPanel({ validation, onCopy, onDownload, onPrint, copied }
       )}
       <div className="actions">
         <button onClick={onCopy}>{copied ? 'Copied' : 'Copy as text'}</button>
-        <button onClick={onDownload}>Download .txt</button>
+        <button onClick={onDownload}>{canShare ? 'Share list' : 'Download .txt'}</button>
         <button onClick={onPrint}>Print / PDF</button>
       </div>
     </div>

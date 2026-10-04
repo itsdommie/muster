@@ -1,0 +1,165 @@
+import { existsSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { _android as android, expect, test, type AndroidDevice, type Page } from '@playwright/test';
+
+// The real APK on a real (emulated) Android: the web view, Capacitor, the print plugin and the share sheet.
+const PKG = 'io.github.itsdommie.muster';
+const APK = process.env.MUSTER_APK ?? resolve('packages/mobile/android/app/build/outputs/apk/debug/app-debug.apk');
+
+let device: AndroidDevice;
+
+test.beforeAll(async () => {
+  if (!existsSync(APK)) throw new Error(`No APK at ${APK}. Run \`npm run apk\` first.`);
+  const devices = await android.devices();
+  if (devices.length !== 1) throw new Error(`Expected exactly one adb device, found ${devices.length}.`);
+  device = devices[0]!;
+  await device.installApk(APK);
+});
+
+test.afterAll(async () => {
+  await device?.close();
+});
+
+/** Start the app from a clean slate (or, with `fresh: false`, from its saved data), and attach to its web view. */
+async function launch(fresh = true): Promise<Page> {
+  await device.shell(`am force-stop ${PKG}`);
+  if (fresh) await device.shell(`pm clear ${PKG}`);
+  await device.shell(`am start -n ${PKG}/.MainActivity`);
+  const page = await (await device.webView({ pkg: PKG })).page();
+  await expect(page.getByRole('heading', { name: 'Muster', level: 1 })).toBeVisible();
+  return page;
+}
+
+/**
+ * Android's web view writes page storage to disk a moment after a change (about two seconds in measurements), so a kill landing inside
+ * that window loses the last edit. Tests that kill the app wait it out first; real exits (Back, Home, Recents) take longer than this.
+ */
+const STORAGE_FLUSH_MS = 4000;
+
+const shell = async (cmd: string) => (await device.shell(cmd)).toString();
+/** The window that currently has focus (the app, the print dialog, the share sheet…). */
+const focused = async () => (await shell('dumpsys window')).split('\n').find((l) => l.includes('mCurrentFocus')) ?? '';
+const sections = (page: Page) => page.getByRole('navigation', { name: 'Sections' });
+const views = (page: Page) => page.getByRole('navigation', { name: 'Views' });
+
+async function buildList(page: Page) {
+  await page.getByRole('button', { name: '+ Warband' }).click();
+  await sections(page).getByRole('button', { name: 'Add' }).click();
+  await page.getByRole('button', { name: 'Add Aldric the Bold' }).click();
+  for (let i = 0; i < 3; i++) await page.getByRole('button', { name: 'Add Vale Spearman' }).click();
+  await sections(page).getByRole('button', { name: 'List' }).click();
+  await page.getByLabel('List name').fill('Phone patrol');
+}
+
+test('is the right app, works fully offline, and asks for no permissions', async () => {
+  const page = await launch();
+  expect(page.url()).toBe('https://localhost/');
+  const info = await shell(`dumpsys package ${PKG}`);
+  expect(info).toContain('versionName=0.1.0');
+  expect(info).not.toContain('android.permission.INTERNET');
+  await expect(page.getByRole('heading', { name: 'Realm of the Vale', level: 2 })).toBeHidden(); // the library is its own tab on a phone
+  await sections(page).getByRole('button', { name: 'Add' }).click();
+  await expect(page.getByRole('heading', { name: 'Realm of the Vale', level: 2 })).toBeVisible();
+});
+
+test('a list survives the app being killed and reopened', async () => {
+  let page = await launch();
+  await buildList(page);
+  await sections(page).getByRole('button', { name: 'Summary' }).click();
+  await expect(page.locator('.summary .points')).toContainText('114 / 500');
+
+  await page.waitForTimeout(STORAGE_FLUSH_MS);
+  page = await launch(false);
+  await expect(page.getByLabel('List name')).toHaveValue('Phone patrol');
+  await sections(page).getByRole('button', { name: 'Summary' }).click();
+  await expect(page.locator('.summary .points')).toContainText('114 / 500');
+  await expect(page.getByRole('status')).toHaveText('Legal list');
+});
+
+test('the system Back button steps back through the views', async () => {
+  const page = await launch();
+  await views(page).getByRole('button', { name: 'Units' }).click();
+  await views(page).getByRole('button', { name: 'Rules' }).click();
+  await expect(page).toHaveURL(/#\/rules$/);
+  await device.shell('input keyevent KEYCODE_BACK');
+  await expect(page).toHaveURL(/#\/units$/);
+  await device.shell('input keyevent KEYCODE_BACK');
+  await expect(page).toHaveURL('https://localhost/');
+  expect(await focused()).toContain(PKG);
+
+  // From the first screen, Back sends the app to the background but keeps it alive (and its screen as it was).
+  await device.shell('input keyevent KEYCODE_BACK');
+  await expect.poll(focused).not.toContain(PKG);
+  expect((await shell(`pidof ${PKG}`)).trim()).not.toBe('');
+});
+
+test('copy works inside the web view', async () => {
+  const page = await launch();
+  await buildList(page);
+  await sections(page).getByRole('button', { name: 'Summary' }).click();
+  await page.getByRole('button', { name: 'Copy as text' }).click();
+  // Either the clipboard accepted it, or the fallback dialog shows the text to copy by hand: never a silent failure.
+  await expect(page.getByRole('button', { name: 'Copied' }).or(page.getByRole('dialog', { name: 'Copy list' }))).toBeVisible();
+});
+
+test('"Share list" opens the system share sheet with the list', async () => {
+  const page = await launch();
+  await buildList(page);
+  await sections(page).getByRole('button', { name: 'Summary' }).click();
+  await expect(page.getByRole('button', { name: 'Download .txt' })).toHaveCount(0); // a phone cannot save a file from a web page
+  await page.getByRole('button', { name: 'Share list' }).click();
+  await expect.poll(focused, { timeout: 15_000 }).toMatch(/Chooser|Resolver|Intent|sharesheet/i);
+  expect(await focused()).not.toContain(PKG);
+  await device.shell('input keyevent KEYCODE_BACK'); // dismiss the sheet
+  await expect.poll(focused).toContain(PKG);
+});
+
+test('"Print / PDF" opens Android\'s print dialog for the list sheet', async () => {
+  const page = await launch();
+  await buildList(page);
+  await sections(page).getByRole('button', { name: 'Summary' }).click();
+  await page.getByRole('button', { name: 'Print / PDF' }).click();
+  await expect.poll(focused, { timeout: 15_000 }).toMatch(/Print/i);
+  await device.shell('input keyevent KEYCODE_BACK');
+  await expect.poll(focused).toContain(PKG);
+});
+
+test('a game can be played and resumed after the app is killed', async () => {
+  let page = await launch();
+  await buildList(page);
+  await views(page).getByRole('button', { name: 'Game' }).click();
+  await page.getByRole('button', { name: 'Start game' }).click();
+  await page.getByRole('button', { name: 'Casualty: Vale Spearman 1' }).click();
+  await page.getByRole('button', { name: 'Spend Might' }).click();
+  await page.getByRole('button', { name: 'Your victory points up' }).click();
+  await expect(page.getByRole('region', { name: 'Your force' }).getByRole('status')).toHaveText('1 more loss until broken');
+
+  await page.waitForTimeout(STORAGE_FLUSH_MS);
+  page = await launch(false);
+  await views(page).getByRole('button', { name: 'Game' }).click();
+  await expect(page.getByRole('region', { name: 'Your force' }).getByRole('status')).toHaveText('1 more loss until broken');
+  await expect(page.getByRole('group', { name: 'Aldric the Bold Might' })).toContainText('2/3');
+  await expect(page.getByRole('group', { name: 'Your victory points' })).toContainText('1');
+});
+
+test('the fight calculator and squad simulation run on the phone', async () => {
+  const page = await launch();
+  await views(page).getByRole('button', { name: 'Fight' }).click();
+  const a = page.getByRole('region', { name: 'Side A' });
+  const b = page.getByRole('region', { name: 'Side B' });
+  await a.getByLabel('Side A model 1', { exact: true }).selectOption({ label: 'Vale Spearman' });
+  await b.getByLabel('Side B model 1', { exact: true }).selectOption({ label: 'Marsh Raider' });
+  const result = page.getByRole('region', { name: 'Result' });
+  await expect(result.getByRole('img', { name: /wins/ })).toHaveAttribute('aria-label', 'Vale Spearman wins 50.0%, Marsh Raider wins 50.0%');
+  await page.getByRole('tab', { name: /Squad vs squad/ }).click();
+  await expect(result.getByRole('status')).toContainText('6,000 battles', { timeout: 60_000 });
+});
+
+test('the screen is laid out for the phone: no sideways scroll, big touch targets', async () => {
+  const page = await launch();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);
+  for (const name of ['Builder', 'Units', 'Rules', 'Fight', 'Game']) {
+    const box = (await views(page).getByRole('button', { name }).boundingBox())!;
+    expect(box.height).toBeGreaterThanOrEqual(40);
+  }
+});

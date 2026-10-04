@@ -138,7 +138,13 @@ export function App() {
     if (window.muster) void window.muster.savePdf(list.name);
     else window.print();
   };
+  const canShare = typeof window.muster?.shareText === 'function';
   const download = () => {
+    // A phone's web view cannot save files, so there the list goes through the share sheet instead.
+    if (window.muster?.shareText) {
+      void window.muster.shareText(list.name, text());
+      return;
+    }
     const url = URL.createObjectURL(new Blob([text()], { type: 'text/plain' }));
     const a = Object.assign(document.createElement('a'), { href: url, download: `${list.name.replace(/[^\w-]+/g, '_') || 'list'}.txt` });
     a.click();
@@ -183,7 +189,7 @@ export function App() {
           {index.pack.name}
         </button>
       </header>
-      {saveFailed && <p className="banner">Browser storage is unavailable, so changes will be lost when you close the app. Use “Download .txt” to keep a list.</p>}
+      {saveFailed && <p className="banner">Browser storage is unavailable, so changes will be lost when you close the app. Use “Copy as text” to keep a list.</p>}
 
       <div className="view" hidden={view !== 'builder'}>
         <div className="list-picker">
@@ -208,7 +214,7 @@ export function App() {
             index={index} list={list} issues={validation.issues} selected={selectedWarband?.id ?? null}
             onSelect={setSelected} onChange={change} onInspect={setInspect} onAddWarband={onAddWarband}
           />
-          <SummaryPanel validation={validation} onCopy={copy} onDownload={download} onPrint={print} copied={copied} />
+          <SummaryPanel validation={validation} onCopy={copy} onDownload={download} onPrint={print} copied={copied} canShare={canShare} />
         </main>
       </div>
 
