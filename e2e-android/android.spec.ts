@@ -8,12 +8,49 @@ const APK = process.env.MUSTER_APK ?? resolve('packages/mobile/android/app/build
 
 let device: AndroidDevice;
 
+/**
+ * The one connected device, once it can really take an install. "Boot completed" is reported a little before the package service is
+ * ready, so a test run started right after a cold boot can otherwise fail before it begins.
+ */
+async function readyDevice(): Promise<AndroidDevice> {
+  const deadline = Date.now() + 180_000;
+  for (;;) {
+    const devices = await android.devices();
+    if (devices.length > 1) throw new Error(`Expected exactly one adb device, found ${devices.length}.`);
+    const [candidate] = devices;
+    if (candidate) {
+      try {
+        const booted = (await candidate.shell('getprop sys.boot_completed')).toString().trim() === '1';
+        if (booted && (await candidate.shell('pm path android')).toString().includes('package:')) return candidate;
+      } catch {
+        // not ready yet
+      }
+      await candidate.close().catch(() => undefined);
+    }
+    if (Date.now() > deadline) throw new Error('No adb device became ready within three minutes.');
+    await new Promise((r) => setTimeout(r, 2000));
+  }
+}
+
 test.beforeAll(async () => {
+  // The first start after a cold boot is slow while the system's web view initialises, so allow for that here, once, and let the
+  // tests themselves run against a warm device.
+  test.setTimeout(420_000);
   if (!existsSync(APK)) throw new Error(`No APK at ${APK}. Run \`npm run apk\` first.`);
-  const devices = await android.devices();
-  if (devices.length !== 1) throw new Error(`Expected exactly one adb device, found ${devices.length}.`);
-  device = devices[0]!;
-  await device.installApk(APK);
+  device = await readyDevice();
+  for (let attempt = 1; ; attempt++) {
+    try {
+      await device.installApk(APK);
+      break;
+    } catch (error) {
+      if (attempt === 3) throw error;
+      await new Promise((r) => setTimeout(r, 5000));
+    }
+  }
+  await device.shell(`am start -n ${PKG}/.MainActivity`);
+  const warm = await (await device.webView({ pkg: PKG }, { timeout: 240_000 })).page();
+  await expect(warm.getByRole('heading', { name: 'Muster', level: 1 })).toBeVisible({ timeout: 60_000 });
+  await device.shell(`am force-stop ${PKG}`);
 });
 
 test.afterAll(async () => {
