@@ -1,4 +1,5 @@
-import type { ArmyList, GameRecord } from '@muster/shared';
+import type { ArmyList, Collection, GameRecord, Tournament } from '@muster/shared';
+import { parseCollection } from '@muster/shared';
 
 // Everything lives on the device. Reads and writes are wrapped because storage can be blocked or full
 // (private windows, quota), and the app must keep working in memory when it is.
@@ -43,3 +44,19 @@ export function clearCustomPack(): void {
 const GAMES = 'muster.games.v1';
 export const loadGames = (): GameRecord[] => read<GameRecord[]>(GAMES) ?? [];
 export const saveGames = (games: GameRecord[]): boolean => write(GAMES, games);
+
+const COLLECTIONS = 'muster.collections.v1';
+/** One collection per data pack, since unit ids only mean something within their pack. */
+export function loadCollections(): Record<string, Collection> {
+  const raw = read<Record<string, unknown>>(COLLECTIONS);
+  if (!raw || typeof raw !== 'object') return {};
+  return Object.fromEntries(Object.entries(raw).map(([pack, c]) => [pack, parseCollection(c)]));
+}
+export const saveCollections = (all: Record<string, Collection>): boolean => write(COLLECTIONS, all);
+
+const TOURNAMENTS = 'muster.tournaments.v1';
+export const loadTournaments = (): Tournament[] => {
+  const raw = read<Tournament[]>(TOURNAMENTS);
+  return Array.isArray(raw) ? raw : [];
+};
+export const saveTournaments = (all: Tournament[]): boolean => write(TOURNAMENTS, all);

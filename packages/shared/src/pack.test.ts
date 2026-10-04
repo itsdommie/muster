@@ -65,4 +65,16 @@ describe('loadPack', () => {
     // A table with an "impossible" entry is fine.
     expect(errorsFor((p) => (p.ruleset.combat.wound = { table: [[4, null], [3, 5]] }))).toEqual([]);
   });
+
+  it('indexes scenarios, treats them as optional, and rejects duplicates', () => {
+    const idx = sampleIndex();
+    expect(idx.scenarios.size).toBe(4);
+    expect(idx.scenarios.get('seize-the-beacon')?.points).toEqual({ min: 200, max: 800 });
+    const without = clone(sample) as any;
+    delete without.scenarios;
+    const r = loadPack(without);
+    expect(r.ok && r.index.scenarios.size).toBe(0);
+    expect(errorsFor((p) => p.scenarios.push(clone(p.scenarios[0])))).toContain('duplicate scenario id "hold-the-ford"');
+    expect(errorsFor((p) => delete p.scenarios[0].name).some((e) => e.startsWith('scenarios.0.name'))).toBe(true);
+  });
 });

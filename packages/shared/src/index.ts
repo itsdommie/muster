@@ -6,3 +6,5 @@ export * from './text.js';
 export * from './search.js';
 export * from './game.js';
 export * from './combat.js';
+export * from './collection.js';
+export * from './tournament.js';

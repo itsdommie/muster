@@ -175,6 +175,27 @@ test('the fight calculator and squad simulation run on the phone', async () => {
   await expect(result.getByRole('status')).toContainText('6,000 battles', { timeout: 60_000 });
 });
 
+test('a tournament can be run on the phone, and the collection counts models', async () => {
+  const page = await launch();
+  await views(page).getByRole('button', { name: 'More' }).click();
+  await page.getByRole('navigation', { name: 'More sections' }).getByRole('button', { name: 'Collection' }).click();
+  await page.getByRole('button', { name: 'Vale Archer in the box up' }).click();
+  await page.getByRole('button', { name: 'Vale Archer in the box up' }).click();
+  await expect(page.getByRole('region', { name: 'Collection summary' })).toContainText('2 models owned');
+
+  await page.getByRole('navigation', { name: 'More sections' }).getByRole('button', { name: 'Tournament' }).click();
+  await page.getByLabel('Name', { exact: true }).fill('Phone night');
+  await page.getByLabel('Players, one per line').fill('Ann\nBob');
+  await page.getByRole('button', { name: 'Create tournament' }).click();
+  await page.getByRole('button', { name: 'Start round 1' }).click();
+  const [a, b] = await page.locator('.pairing input').all();
+  await a!.fill('5');
+  await b!.pressSequentially('12'); // a two-digit score keeps its focus while typing
+  await expect(b).toHaveValue('12');
+  await expect(page.locator('.pairing .result')).toContainText('wins');
+  await expect(page.getByRole('region', { name: 'Progress' })).toContainText('1 of 1 rounds played');
+});
+
 test('the screen is laid out for the phone: no sideways scroll, big touch targets', async () => {
   const page = await launch();
   expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);

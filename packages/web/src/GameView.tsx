@@ -1,7 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   canRedo, canUndo, dispatch, finishGame, forceStatus, isDown, opponentStatus, redo, replay, startGame, undo, warbandModels,
-  type ArmyList, type Game, type GameEvent, type GameModel, type GameRecord, type PackIndex, type Side, type Stat,
+  type ArmyList, type Game, type GameEvent, type GameModel, type GameRecord, type PackIndex, type Scenario, type Side, type Stat,
 } from '@muster/shared';
 import { useWakeLock } from './useWakeLock';
 
@@ -11,12 +11,14 @@ interface Props {
   games: GameRecord[];
   onGames: (fn: (games: GameRecord[]) => GameRecord[]) => void;
   onInspect: (unitId: string) => void;
+  /** A scenario chosen elsewhere (the Scenarios tab), to preselect when starting. */
+  scenarioId?: string | null;
 }
 
 const listModels = (l: ArmyList): number => l.warbands.reduce((n, w) => n + warbandModels(w), 0);
 const date = (t: number): string => new Date(t).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
 
-export function GameView({ index, lists, games, onGames, onInspect }: Props) {
+export function GameView({ index, lists, games, onGames, onInspect, scenarioId }: Props) {
   const active = games.find((g) => !g.finishedAt);
   const finished = games.filter((g) => g.finishedAt).sort((a, b) => b.finishedAt! - a.finishedAt!);
 
@@ -25,19 +27,22 @@ export function GameView({ index, lists, games, onGames, onInspect }: Props) {
       {active ? (
         <Tracker key={active.id} record={active} onGames={onGames} onInspect={onInspect} />
       ) : (
-        <StartCard index={index} lists={lists} onStart={(r) => onGames((all) => [...all, r])} />
+        <StartCard index={index} lists={lists} scenarioId={scenarioId ?? null} onStart={(r) => onGames((all) => [...all, r])} />
       )}
       {finished.length > 0 && <PastGames games={finished} onDelete={(id) => onGames((all) => all.filter((g) => g.id !== id))} />}
     </div>
   );
 }
 
-function StartCard({ index, lists, onStart }: { index: PackIndex; lists: ArmyList[]; onStart: (r: GameRecord) => void }) {
+function StartCard({ index, lists, scenarioId, onStart }: { index: PackIndex; lists: ArmyList[]; scenarioId: string | null; onStart: (r: GameRecord) => void }) {
   const playable = lists.filter((l) => listModels(l) > 0);
   const [listId, setListId] = useState(playable[0]?.id ?? '');
   const [opponent, setOpponent] = useState('');
   const [opponentModels, setOpponentModels] = useState('');
   const list = playable.find((l) => l.id === listId) ?? playable[0];
+  const scenarios: Scenario[] = index.pack.scenarios;
+  const [scenario, setScenario] = useState(scenarioId ?? '');
+  useEffect(() => { if (scenarioId) setScenario(scenarioId); }, [scenarioId]);
 
   return (
     <section className="panel start-card">
@@ -52,7 +57,7 @@ function StartCard({ index, lists, onStart }: { index: PackIndex; lists: ArmyLis
           className="form"
           onSubmit={(e) => {
             e.preventDefault();
-            if (list) onStart(startGame(index, list, { opponent, opponentStart: Number(opponentModels) || 0 }));
+            if (list) onStart(startGame(index, list, { opponent, opponentStart: Number(opponentModels) || 0, ...(index.scenarios.get(scenario) ? { scenario: index.scenarios.get(scenario)! } : {}) }));
           }}
         >
           <label>
@@ -61,6 +66,15 @@ function StartCard({ index, lists, onStart }: { index: PackIndex; lists: ArmyLis
               {playable.map((l) => <option key={l.id} value={l.id}>{l.name} ({listModels(l)} models)</option>)}
             </select>
           </label>
+          {scenarios.length > 0 && (
+            <label>
+              Scenario <span className="muted">(optional)</span>
+              <select value={scenario} onChange={(e) => setScenario(e.target.value)} aria-label="Scenario">
+                <option value="">None</option>
+                {scenarios.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
+              </select>
+            </label>
+          )}
           <label>
             Opponent <span className="muted">(optional)</span>
             <input value={opponent} onChange={(e) => setOpponent(e.target.value)} placeholder="Name" />
@@ -134,6 +148,17 @@ function Tracker({ record, onGames, onInspect }: { record: GameRecord; onGames: 
 
       <div className="game-layout">
         <aside className="game-side">
+          {record.scenario && (
+            <details className="panel scenario-note" aria-label="Scenario">
+              <summary><strong>{record.scenario.name}</strong></summary>
+              <div className="scenario-body">
+                {record.scenario.setup && <section><h4>Set-up</h4><p>{record.scenario.setup}</p></section>}
+                {record.scenario.objectives && <section><h4>Objectives</h4><p>{record.scenario.objectives}</p></section>}
+                {record.scenario.victory && <section><h4>Winning</h4><p>{record.scenario.victory}</p></section>}
+                {record.scenario.special && <section><h4>Special rules</h4><p>{record.scenario.special}</p></section>}
+              </div>
+            </details>
+          )}
           <ForceCard title={record.listName} me={me} game={game} />
           <OpponentCard name={record.opponent} opp={opp} onLost={(n) => send({ t: 'opp-lost', n })} onStart={(n) => send({ t: 'opp-start', n })} />
           <details className="panel log">
@@ -298,7 +323,7 @@ function PastGames({ games, onDelete }: { games: GameRecord[]; onDelete: (id: st
           return (
             <li key={r.id}>
               <span className="grow">
-                <strong>{r.name}</strong>{r.opponent && <> vs {r.opponent}</>}
+                <strong>{r.name}</strong>{r.opponent && <> vs {r.opponent}</>}{r.scenario && <span className="badge">{r.scenario.name}</span>}
                 <span className="muted small block">
                   {date(r.finishedAt!)} · {g.vp.me}–{g.vp.opponent} VP · {result}
                   {me.broken && ' · you broke'}{opp.broken && ' · they broke'} · {r.events.length} events

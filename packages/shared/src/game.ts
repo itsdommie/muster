@@ -1,5 +1,6 @@
 import { entryWargear, newId, warbandEntries, type ArmyList } from './list.js';
 import type { PackIndex } from './pack.js';
+import type { Scenario } from './schema.js';
 
 // A game in progress is a frozen starting state plus a list of events. The current state is the replay of the events, so undo and redo
 // are just moving an event between two stacks, a saved game is small, and the log reads straight off the events.
@@ -49,12 +50,28 @@ export type GameEvent =
   | { t: 'opp-lost'; n: number }
   | { t: 'opp-start'; n: number };
 
+/** The scenario a game is being played, copied at the start so a pack update cannot change a game under way. */
+export interface ScenarioSnapshot {
+  id: string;
+  name: string;
+  setup: string;
+  objectives: string;
+  victory: string;
+  special?: string;
+}
+
+export const snapshotScenario = (s: Scenario): ScenarioSnapshot => ({
+  id: s.id, name: s.name, setup: s.setup, objectives: s.objectives, victory: s.victory, ...(s.special ? { special: s.special } : {}),
+});
+
 export interface GameRecord {
   id: string;
   name: string;
   pack: string;
   listName: string;
   opponent: string;
+  /** Absent in games saved before scenarios existed. */
+  scenario?: ScenarioSnapshot;
   startedAt: number;
   finishedAt: number | null;
   notes: string;
@@ -89,7 +106,7 @@ export const breakPoint = (models: number, fraction: number): number => Math.cei
 
 // --- Starting a game ---
 
-export function startGame(index: PackIndex, list: ArmyList, opts: { opponent?: string; opponentStart?: number; name?: string } = {}): GameRecord {
+export function startGame(index: PackIndex, list: ArmyList, opts: { opponent?: string; opponentStart?: number; name?: string; scenario?: Scenario } = {}): GameRecord {
   const models: GameModel[] = [];
   list.warbands.forEach((w, wi) => {
     // Number models per unit within the warband, so "Vale Spearman" x5 becomes 1..5.
@@ -132,6 +149,7 @@ export function startGame(index: PackIndex, list: ArmyList, opts: { opponent?: s
     pack: index.pack.id,
     listName: list.name,
     opponent: opts.opponent?.trim() ?? '',
+    ...(opts.scenario ? { scenario: snapshotScenario(opts.scenario) } : {}),
     startedAt: Date.now(),
     finishedAt: null,
     notes: '',

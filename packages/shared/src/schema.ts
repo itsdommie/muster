@@ -106,6 +106,24 @@ export const combatSchema = z.object({
   might: z.object({ duelBonus: z.number().int().min(0) }).optional(),
 });
 
+export const scenarioSchema = z.object({
+  id,
+  name: z.string().min(1),
+  /** One line for the list view. */
+  summary: z.string().optional(),
+  /** Number of players, e.g. "2" or "2-4". */
+  players: z.string().optional(),
+  /** Suggested army size range, in points. */
+  points: z.object({ min: z.number().int().min(0).optional(), max: z.number().int().min(0).optional() }).optional(),
+  setup: z.string().default(''),
+  objectives: z.string().default(''),
+  /** How victory points are scored and who wins. */
+  victory: z.string().default(''),
+  /** Anything special for this scenario (terrain, reinforcements, a turn limit). */
+  special: z.string().optional(),
+  tags: z.array(z.string().min(1)).default([]),
+});
+
 export const rulesetSchema = z.object({
   /** Default maximum number of warriors led by one hero. */
   warbandSize: z.number().int().min(0),
@@ -131,6 +149,7 @@ export const packSchema = z.object({
   wargear: z.array(wargearSchema).default([]),
   rules: z.array(specialRuleSchema).default([]),
   armies: z.array(armySchema).min(1),
+  scenarios: z.array(scenarioSchema).default([]),
 });
 
 export type Stats = z.infer<typeof statsSchema>;
@@ -139,6 +158,7 @@ export type Unit = z.infer<typeof unitSchema>;
 export type Wargear = z.infer<typeof wargearSchema>;
 export type SpecialRule = z.infer<typeof specialRuleSchema>;
 export type Army = z.infer<typeof armySchema>;
+export type Scenario = z.infer<typeof scenarioSchema>;
 export type Ruleset = z.infer<typeof rulesetSchema>;
 export type Combat = z.infer<typeof combatSchema>;
 export type Pack = z.infer<typeof packSchema>;

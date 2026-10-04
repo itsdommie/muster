@@ -1,4 +1,4 @@
-import { packSchema, type Army, type Pack, type SpecialRule, type Unit, type Wargear } from './schema.js';
+import { packSchema, type Army, type Pack, type Scenario, type SpecialRule, type Unit, type Wargear } from './schema.js';
 
 /** A validated pack plus lookup tables. All engine functions take this, never raw JSON. */
 export interface PackIndex {
@@ -7,6 +7,7 @@ export interface PackIndex {
   wargear: Map<string, Wargear>;
   rules: Map<string, SpecialRule>;
   armies: Map<string, Army>;
+  scenarios: Map<string, Scenario>;
 }
 
 export type PackResult = { ok: true; index: PackIndex } | { ok: false; errors: string[] };
@@ -35,6 +36,7 @@ export function loadPack(json: unknown): PackResult {
     ['wargear', pack.wargear.map((w) => w.id)],
     ['rule', pack.rules.map((r) => r.id)],
     ['army', pack.armies.map((a) => a.id)],
+    ['scenario', pack.scenarios.map((x) => x.id)],
   ];
   for (const [label, ids] of collections) {
     for (const d of duplicates(ids)) errors.push(`duplicate ${label} id "${d}"`);
@@ -70,5 +72,5 @@ export function loadPack(json: unknown): PackResult {
     }
   }
 
-  return errors.length > 0 ? { ok: false, errors } : { ok: true, index: { pack, units, wargear, rules, armies } };
+  return errors.length > 0 ? { ok: false, errors } : { ok: true, index: { pack, units, wargear, rules, armies, scenarios: new Map(pack.scenarios.map((x) => [x.id, x])) } };
 }

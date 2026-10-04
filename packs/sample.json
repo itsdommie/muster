@@ -696,5 +696,74 @@
       ],
       "allies": []
     }
+  ],
+  "scenarios": [
+    {
+      "id": "hold-the-ford",
+      "name": "Hold the Ford",
+      "summary": "One side defends a river crossing; the other must force it.",
+      "players": "2",
+      "points": {
+        "min": 300,
+        "max": 600
+      },
+      "setup": "Run a river across the middle of the table with a single ford 6\" wide. The defender deploys within 8\" of the river on their side; the attacker deploys within 8\" of their own table edge.",
+      "objectives": "The attacker scores 1 VP for each of their models that ends a turn across the river, and 3 VP for each hero that does. The defender scores 1 VP for each attacking model removed at the ford.",
+      "victory": "After turn 8, or when one force is broken, the side with more victory points wins. A tie is a draw.",
+      "special": "Models in the ford count as in difficult terrain.",
+      "tags": [
+        "attack and defend"
+      ]
+    },
+    {
+      "id": "seize-the-beacon",
+      "name": "Seize the Beacon",
+      "summary": "Race to hold a signal fire in the middle of the table.",
+      "players": "2",
+      "points": {
+        "min": 200,
+        "max": 800
+      },
+      "setup": "Place a beacon at the centre of the table. Forces deploy within 10\" of opposite table edges.",
+      "objectives": "At the end of each turn from turn 3, the side with more models within 3\" of the beacon scores 2 VP. If the sides are level, neither scores.",
+      "victory": "Play 6 turns. The side with more victory points wins; a tie is a draw.",
+      "tags": [
+        "objective",
+        "meeting engagement"
+      ]
+    },
+    {
+      "id": "break-the-line",
+      "name": "Break the Line",
+      "summary": "A straight fight: kill models and break the enemy.",
+      "players": "2",
+      "points": {
+        "min": 150,
+        "max": 1000
+      },
+      "setup": "Forces deploy within 12\" of opposite table edges. No terrain within 6\" of the centre line.",
+      "objectives": "Score 1 VP for each enemy warrior removed and 2 VP for each enemy hero removed. A force that becomes broken scores 0 for the rest of the game.",
+      "victory": "The game ends when one force is broken or after turn 10. Highest victory points wins.",
+      "tags": [
+        "skirmish"
+      ]
+    },
+    {
+      "id": "supply-run",
+      "name": "Supply Run",
+      "summary": "Carry supplies from the middle to your own table edge.",
+      "players": "2",
+      "points": {
+        "min": 300,
+        "max": 600
+      },
+      "setup": "Place four supply markers along the centre line, 6\" apart. Forces deploy within 8\" of opposite table edges.",
+      "objectives": "A model carrying a marker moves at 4\" and cannot charge. A marker carried off your own table edge scores 3 VP. Dropped markers stay where they fall.",
+      "victory": "Play 8 turns. Highest victory points wins; a tie is a draw.",
+      "special": "A model may carry only one marker.",
+      "tags": [
+        "objective"
+      ]
+    }
   ]
 }

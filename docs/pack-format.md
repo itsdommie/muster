@@ -51,6 +51,20 @@ Enables the fight calculator. Without it the Fight tab says the pack defines no 
 
 The calculator is deliberately a simplified model (no positioning, no special actions), so it is a guide and not a referee.
 
+## `scenarios` (optional)
+
+A list of scenarios to browse and attach to a game. Without it the Scenarios tab says the pack has none.
+
+```json
+{
+  "id": "seize-the-beacon", "name": "Seize the Beacon", "summary": "Race to hold a signal fire.",
+  "players": "2", "points": { "min": 200, "max": 800 },
+  "setup": "…", "objectives": "…", "victory": "…", "special": "…", "tags": ["objective"]
+}
+```
+
+`id` and `name` are required; everything else is optional free text (`players` is text, e.g. `"2-4"`). Starting a game with a scenario copies its text into the game, so a later pack update does not change a game under way.
+
 ## `units`
 
 ```json

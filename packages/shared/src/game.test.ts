@@ -64,6 +64,24 @@ describe('startGame', () => {
   });
 });
 
+describe('scenarios', () => {
+  it('a game can be started with a scenario, which is copied into the record', () => {
+    const scenario = idx.scenarios.get('hold-the-ford')!;
+    const r = startGame(idx, newList(idx, 'vale-realm'), { scenario });
+    expect(r.scenario).toMatchObject({ id: 'hold-the-ford', name: 'Hold the Ford', special: expect.stringContaining('difficult terrain') });
+    expect(r.scenario!.objectives).toBe(scenario.objectives);
+    // A copy: it survives a JSON round trip and does not point back into the pack.
+    expect(JSON.parse(JSON.stringify(r)).scenario).toEqual(r.scenario);
+    expect(r.scenario).not.toBe(scenario);
+  });
+
+  it('is optional, and omitted fields stay omitted', () => {
+    expect('scenario' in startGame(idx, newList(idx, 'vale-realm'))).toBe(false);
+    const r = startGame(idx, newList(idx, 'vale-realm'), { scenario: idx.scenarios.get('seize-the-beacon')! });
+    expect('special' in r.scenario!).toBe(false); // this scenario has no special rules
+  });
+});
+
 describe('wounds and casualties', () => {
   it('reduces wounds, makes a casualty at zero, and never goes below zero', () => {
     let r = sampleRecord();

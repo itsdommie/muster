@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   addUnit, addWarband, exportText, loadPack, newId, newList, validateList,
-  type ArmyList, type GameRecord, type PackIndex, type Unit,
+  type ArmyList, type Collection, type GameRecord, type PackIndex, type Tournament, type Unit,
 } from '@muster/shared';
 import sample from '../../../packs/sample.json';
 import { ExportDialog, ImportDialog, PackDialog } from './Dialogs';
@@ -11,8 +11,11 @@ import { LibraryPanel } from './LibraryPanel';
 import { ListPanel } from './ListPanel';
 import { PrintSheet } from './PrintSheet';
 import { RulesView } from './RulesView';
-import { useView, type View } from './route';
-import { clearCustomPack, loadCurrent, loadCustomPack, loadGames, loadLists, saveCurrent, saveCustomPack, saveGames, saveLists } from './storage';
+import { MoreView, moreSection, type MoreSection } from './MoreView';
+import { useRoute, type View } from './route';
+import {
+  clearCustomPack, loadCollections, loadCurrent, loadCustomPack, loadGames, loadLists, loadTournaments, saveCollections, saveCurrent, saveCustomPack, saveGames, saveLists, saveTournaments,
+} from './storage';
 import { SummaryPanel } from './SummaryPanel';
 import { UnitCard } from './UnitCard';
 import { UnitsView } from './UnitsView';
@@ -54,7 +57,13 @@ export function App() {
   const [saveFailed, setSaveFailed] = useState(false);
   const copyTimer = useRef<number | undefined>(undefined);
   const [games, setGames] = useState<GameRecord[]>(loadGames);
-  const [view, setView] = useView();
+  const [{ view, sub }, go] = useRoute();
+  const setView = (v: View) => go(v);
+  const [collections, setCollections] = useState<Record<string, Collection>>(loadCollections);
+  const [tournaments, setTournaments] = useState<Tournament[]>(loadTournaments);
+  const [gameScenario, setGameScenario] = useState<string | null>(null);
+  const [lastMoreSub, setLastMoreSub] = useState<string | null>(null);
+  useEffect(() => { if (view === 'more' && sub) setLastMoreSub(sub); }, [view, sub]);
   const [unitQuery, setUnitQuery] = useState('');
   const [unitSelected, setUnitSelected] = useState<string | null>(null);
   const [focusRule, setFocusRule] = useState<string | null>(null);
@@ -64,8 +73,8 @@ export function App() {
   const validation = useMemo(() => validateList(index, list), [index, list]);
 
   useEffect(() => {
-    setSaveFailed(!(saveLists(lists) && saveCurrent(currentId) && saveGames(games)));
-  }, [lists, currentId, games]);
+    setSaveFailed(!(saveLists(lists) && saveCurrent(currentId) && saveGames(games) && saveCollections(collections) && saveTournaments(tournaments)));
+  }, [lists, currentId, games, collections, tournaments]);
 
   const change = useCallback(
     (fn: (l: ArmyList) => ArmyList) => setLists((all) => all.map((l) => (l.id === currentId ? fn(l) : l))),
@@ -119,7 +128,14 @@ export function App() {
   };
   const goTo = (v: View) => {
     if (v !== 'rules') setFocusRule(null);
-    setView(v);
+    if (v === 'more') go('more', lastMoreSub);
+    else setView(v);
+  };
+  const collection = collections[index.pack.id] ?? {};
+  const editCollection = (fn: (c: Collection) => Collection) => setCollections((all) => ({ ...all, [index.pack.id]: fn(all[index.pack.id] ?? {}) }));
+  const playScenario = (id: string) => {
+    setGameScenario(id);
+    go('game');
   };
 
   const text = () => exportText(index, list);
@@ -179,7 +195,7 @@ export function App() {
       <header className="topbar">
         <h1><span aria-hidden>★</span> Muster</h1>
         <nav className="views" aria-label="Views">
-          {([['builder', 'Builder'], ['units', 'Units'], ['rules', 'Rules'], ['fight', 'Fight'], ['game', 'Game']] as const).map(([v, label]) => (
+          {([['builder', 'Builder'], ['units', 'Units'], ['rules', 'Rules'], ['fight', 'Fight'], ['game', 'Game'], ['more', 'More']] as const).map(([v, label]) => (
             <button key={v} className={view === v ? 'on' : ''} aria-current={view === v ? 'page' : undefined} onClick={() => goTo(v)}>
               {label}{v === 'game' && games.some((g) => !g.finishedAt) && <span className="live" role="img" aria-label="game in progress" />}
             </button>
@@ -232,8 +248,16 @@ export function App() {
 
       <div className="view" hidden={view !== 'game'}>
         <GameView
-          index={index} lists={mine} games={games} onGames={setGames}
+          index={index} lists={mine} games={games} onGames={setGames} scenarioId={gameScenario}
           onInspect={(unitId) => { const u = index.units.get(unitId); if (u) setInspect(u); }}
+        />
+      </div>
+
+      <div className="view" hidden={view !== 'more'}>
+        <MoreView
+          index={index} section={moreSection(sub)} onSection={(s: MoreSection) => go('more', s)}
+          collection={collection} onCollection={editCollection} lists={mine} currentListId={list.id}
+          tournaments={tournaments} onTournaments={setTournaments} onPlayScenario={playScenario}
         />
       </div>
 

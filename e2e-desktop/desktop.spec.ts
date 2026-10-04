@@ -110,6 +110,37 @@ test('the fight calculator solves a fight and runs a squad simulation in the des
   await app.close();
 });
 
+test('the collection and a tournament are kept across a restart', async () => {
+  const userData = mkdtempSync(join(tmpdir(), 'muster-data-'));
+  let app = await launch(userData);
+  let page = await app.firstWindow();
+  const more = (section: string) => page.getByRole('navigation', { name: 'More sections' }).getByRole('button', { name: section });
+
+  await page.getByRole('navigation', { name: 'Views' }).getByRole('button', { name: 'More' }).click();
+  for (let i = 0; i < 3; i++) await page.getByRole('button', { name: 'Vale Spearman in the box up' }).click();
+  await page.getByRole('button', { name: 'Move one Vale Spearman to built' }).click();
+  await more('Tournament').click();
+  await page.getByLabel('Name', { exact: true }).fill('Club night');
+  await page.getByLabel('Players, one per line').fill('Ann\nBob\nCat\nDan');
+  await page.getByRole('button', { name: 'Create tournament' }).click();
+  await page.getByRole('button', { name: 'Start round 1' }).click();
+  const [x, y] = await page.locator('.pairing').first().locator('input').all();
+  await x!.fill('7');
+  await y!.fill('2');
+  await expect(page.getByRole('region', { name: 'Progress' })).toContainText('0 of 2 rounds played'); // the other game is still open
+  await app.close();
+
+  app = await launch(userData);
+  page = await app.firstWindow();
+  await page.getByRole('navigation', { name: 'Views' }).getByRole('button', { name: 'More' }).click();
+  await expect(page.getByRole('region', { name: 'Collection summary' })).toContainText('3 models owned');
+  await expect(page.getByRole('group', { name: 'Vale Spearman built' })).toContainText('1');
+  await more('Tournament').click();
+  await expect(page.getByRole('region', { name: 'Progress' })).toContainText('Club night');
+  await expect(page.locator('.pairing .result').first()).toContainText('wins'); // the entered result survived
+  await app.close();
+});
+
 test('a game in progress resumes after the app is closed and reopened', async () => {
   const userData = mkdtempSync(join(tmpdir(), 'muster-data-'));
   let app = await launch(userData);

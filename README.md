@@ -4,7 +4,7 @@ A local-first companion app for tabletop skirmish army building. Build lists wit
 
 **Muster ships no game data.** Armies, units and rules live in JSON *data packs* you load yourself ([format](docs/pack-format.md)); a small invented sample pack is bundled so you can try it. See [NOTICE.md](NOTICE.md).
 
-What it does today: build and validate army lists, browse every unit with a search language (`f>=5 r:terror army:vale or is:hero`, help is built into the Units view), read the rules and wargear reference, export/import lists, print or save a PDF, track a game at the table (wounds, Might/Will/Fate, break point, turn, victory points, undo, resume), and work out fight odds (exact one-on-one, simulated squad vs squad) using the combat rules in your pack.
+What it does today: build and validate army lists, browse every unit with a search language (`f>=5 r:terror army:vale or is:hero`, help is built into the Units view), read the rules and wargear reference, export/import lists, print or save a PDF, keep a collection and painting queue (and check a list against what you own), browse scenarios, run a Swiss tournament for a club night, track a game at the table (wounds, Might/Will/Fate, break point, turn, victory points, undo, resume), and work out fight odds (exact one-on-one, simulated squad vs squad) using the combat rules in your pack.
 
 Targets: Windows, Linux and Android. See [PLAN.md](PLAN.md) for the roadmap and status.
 
