@@ -55,6 +55,7 @@ jobs:
           api-level: 34
           arch: x86_64
           target: google_apis
+          disk-size: 3072M # the default (7.4 GB) does not fit on a hosted runner next to the SDK
           disable-animations: true
           script: npx playwright test -c playwright.android.config.ts
       - uses: actions/upload-artifact@v4
