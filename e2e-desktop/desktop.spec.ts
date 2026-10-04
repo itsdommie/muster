@@ -245,7 +245,8 @@ test('Print / PDF saves a real PDF of the list', async () => {
   await page.getByRole('button', { name: '+ Warband' }).click();
   await page.getByRole('button', { name: 'Add Aldric the Bold' }).click();
   await page.getByRole('button', { name: 'Print / PDF' }).click();
-  await expect.poll(() => existsSync(pdf)).toBe(true);
+  // The file appears as soon as it is created, and on Windows it is empty until the write finishes: wait for real content.
+  await expect.poll(() => (existsSync(pdf) ? statSync(pdf).size : 0), { timeout: 15_000 }).toBeGreaterThan(1500);
 
   const bytes = readFileSync(pdf);
   expect(bytes.subarray(0, 5).toString()).toBe('%PDF-');

@@ -128,6 +128,19 @@ const STORAGE_FLUSH_MS = 4000;
 const shell = async (cmd: string) => (await device.shell(cmd)).toString();
 /** The window that currently has focus (the app, the print dialog, the share sheet…). */
 const focused = async () => (await shell('dumpsys window')).split('\n').find((l) => l.includes('mCurrentFocus')) ?? '';
+/** Dismiss a system dialog (share sheet, print dialog, file picker) the way a person would: press Back until the app is in front again. */
+async function backToApp() {
+  for (let i = 0; i < 6; i++) {
+    await device.shell('input keyevent KEYCODE_BACK');
+    try {
+      await expect.poll(focused, { timeout: 4000 }).toContain(PKG);
+      return;
+    } catch {
+      // a slow emulator can swallow the key while the dialog is still loading: press it again
+    }
+  }
+  throw new Error(`Could not get back to the app. Focus is on: ${await focused()}`);
+}
 const sections = (page: Page) => page.getByRole('navigation', { name: 'Sections' });
 const views = (page: Page) => page.getByRole('navigation', { name: 'Views' });
 
@@ -208,8 +221,7 @@ test('"Share list" opens the system share sheet with the list', async () => {
   await page.getByRole('button', { name: 'Share list' }).click();
   await expect.poll(focused, { timeout: 15_000 }).toMatch(/Chooser|Resolver|Intent|sharesheet/i);
   expect(await focused()).not.toContain(PKG);
-  await device.shell('input keyevent KEYCODE_BACK'); // dismiss the sheet
-  await expect.poll(focused).toContain(PKG);
+  await backToApp();
 });
 
 test('"Print / PDF" opens Android\'s print dialog for the list sheet', async () => {
@@ -218,8 +230,7 @@ test('"Print / PDF" opens Android\'s print dialog for the list sheet', async () 
   await sections(page).getByRole('button', { name: 'Summary' }).click();
   await page.getByRole('button', { name: 'Print / PDF' }).click();
   await expect.poll(focused, { timeout: 15_000 }).toMatch(/Print/i);
-  await device.shell('input keyevent KEYCODE_BACK');
-  await expect.poll(focused).toContain(PKG);
+  await backToApp();
 });
 
 test('a game can be played and resumed after the app is killed', async () => {
@@ -292,14 +303,12 @@ test('a backup is offered to the share sheet as a real file, and the file picker
   const backup = JSON.parse(await shell(`run-as ${PKG} cat cache/${name}`));
   expect(backup).toMatchObject({ app: 'muster', format: 1 });
   expect(backup.data.collections.sample['vale-archer'].painted).toBe(2);
-  await device.shell('input keyevent KEYCODE_BACK');
-  await expect.poll(focused).toContain(PKG);
+  await backToApp();
 
   // Restoring opens Android's own file picker (a web view cannot show one by itself).
   await dialog.getByText('Choose backup file…').click();
   await expect.poll(focused, { timeout: 20_000 }).toMatch(/documentsui|picker|filepicker|files/i);
-  await device.shell('input keyevent KEYCODE_BACK');
-  await expect.poll(focused).toContain(PKG);
+  await backToApp();
 });
 
 test('the screen is laid out for the phone: no sideways scroll, big touch targets', async () => {
