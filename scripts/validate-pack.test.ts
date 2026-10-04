@@ -4,7 +4,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-const run = (file: string) => spawnSync('npx', ['tsx', 'scripts/validate-pack.ts', file], { encoding: 'utf8' });
+// Launch Node itself (not npx, which is npx.cmd on Windows and cannot be spawned without a shell).
+const run = (file: string) => spawnSync(process.execPath, ['--import', 'tsx', 'scripts/validate-pack.ts', file], { encoding: 'utf8' });
 
 describe('validate-pack script', () => {
   it('accepts the bundled sample pack', () => {
