@@ -8,6 +8,10 @@ const APK = process.env.MUSTER_APK ?? resolve('packages/mobile/android/app/build
 
 let device: AndroidDevice;
 
+/** Give up on a step that has no timeout of its own (attaching to a web view can hang). The step is abandoned, not cancelled. */
+const withTimeout = <T,>(work: Promise<T>, ms: number, what: string): Promise<T> =>
+  Promise.race([work, new Promise<never>((_, reject) => setTimeout(() => reject(new Error(`${what} did not finish within ${ms / 1000}s`)), ms))]);
+
 /**
  * The one connected device, once it can really take an install. "Boot completed" is reported a little before the package service is
  * ready, so a test run started right after a cold boot can otherwise fail before it begins.
@@ -35,7 +39,7 @@ async function readyDevice(): Promise<AndroidDevice> {
 test.beforeAll(async () => {
   // The first start after a cold boot is slow while the system's web view initialises, so allow for that here, once, and let the
   // tests themselves run against a warm device.
-  test.setTimeout(420_000);
+  test.setTimeout(600_000);
   if (!existsSync(APK)) throw new Error(`No APK at ${APK}. Run \`npm run apk\` first.`);
   device = await readyDevice();
   // Keep the screen on and unlocked for the whole run: a key press or a share sheet needs the app to be the window on top. These are
@@ -55,13 +59,25 @@ test.beforeAll(async () => {
     }
   }
   console.log('setup: installed; warming up the app');
-  await device.shell(`am start -n ${PKG}/.MainActivity`);
-  const warm = await (await device.webView({ pkg: PKG }, { timeout: 240_000 })).page();
-  await expect(warm.getByRole('heading', { name: 'Muster', level: 1 })).toBeVisible({ timeout: 60_000 });
+  // The first start after a cold boot can be very slow, and sometimes the web view never shows up: restart the app rather than wait.
+  for (let attempt = 1; ; attempt++) {
+    const started = Date.now();
+    try {
+      await device.shell(`am force-stop ${PKG}`);
+      await device.shell(`am start -n ${PKG}/.MainActivity`);
+      const view = await withTimeout(device.webView({ pkg: PKG }, { timeout: 90_000 }), 100_000, 'finding the web view');
+      const warm = await withTimeout(view.page(), 60_000, 'opening the page');
+      await expect(warm.getByRole('heading', { name: 'Muster', level: 1 })).toBeVisible({ timeout: 60_000 });
+      console.log(`setup: warm-up attempt ${attempt} ok (${Math.round((Date.now() - started) / 1000)} s)`);
+      break;
+    } catch (error) {
+      console.log(`setup: warm-up attempt ${attempt} failed after ${Math.round((Date.now() - started) / 1000)} s: ${String(error).split('\n')[0]}`);
+      if (attempt === 3) throw error;
+    }
+  }
   await device.shell(`am force-stop ${PKG}`);
 });
 
-// When a test fails, say what the device saw: a dead app or web view looks the same as a lost connection from the test's side.
 test.afterEach(async ({}, testInfo) => {
   if (testInfo.status === testInfo.expectedStatus || !device) return;
   const grab = async (cmd: string) => (await device.shell(cmd).catch((e: unknown) => String(e))).toString().trim();
@@ -90,7 +106,8 @@ async function launch(fresh = true): Promise<Page> {
     if (fresh && attempt === 0) await device.shell(`pm clear ${PKG}`);
     await device.shell(`am start -n ${PKG}/.MainActivity`);
     try {
-      const page = await (await device.webView({ pkg: PKG }, { timeout: 20_000 })).page();
+      const view = await withTimeout(device.webView({ pkg: PKG }, { timeout: 20_000 }), 30_000, 'finding the web view');
+      const page = await withTimeout(view.page(), 30_000, 'opening the page');
       await expect(page.getByRole('heading', { name: 'Muster', level: 1 })).toBeVisible();
       // Being attachable is not the same as being on screen: key presses and system dialogs need the app to hold the focus.
       await expect.poll(focused, { timeout: 15_000 }).toContain(PKG);
