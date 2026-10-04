@@ -75,7 +75,7 @@ export function BackupDialog({ data, lastBackup, onBackedUp, onRestore, onClose 
           <h3>Back up</h3>
           <Summary data={data} />
           <p className="muted small">{lastBackup ? `Last backup: ${when(lastBackup)}.` : 'You have not saved a backup yet.'}</p>
-          <div className="actions flush"><button className="primary" onClick={() => void save()}>{window.muster?.saveFile ? 'Share backup file…' : 'Save backup file'}</button></div>
+          <div className="actions flush"><button className="primary" onClick={() => void save()}>{window.muster?.shareText ? 'Share backup file…' : 'Save backup file'}</button></div>
           {saved && <p role="status" className="small">{saved}</p>}
         </section>
 

@@ -1,7 +1,7 @@
 import { app, BrowserWindow, dialog, ipcMain, Menu, net, protocol, session, shell, type IpcMainInvokeEvent } from 'electron';
 import { appendFileSync } from 'node:fs';
 import { writeFile } from 'node:fs/promises';
-import { basename, join, resolve } from 'node:path';
+import { extname, join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { resolveAppPath } from './appPath';
 
@@ -109,6 +109,29 @@ async function savePdf(event: IpcMainInvokeEvent, suggestedName: unknown): Promi
   return true;
 }
 
+/**
+ * Save a text file from the page (a backup, a list). Done here and not as a browser download, because a download counts as unfinished for
+ * a moment after the bytes are written (Windows scans it), and closing the app in that moment cancels it and removes the file. This
+ * answers only once the file is on disk.
+ */
+async function saveFile(event: IpcMainInvokeEvent, name: unknown, _mime: unknown, text: unknown): Promise<boolean> {
+  if (!event.senderFrame || !isAppUrl(event.senderFrame.url)) return false;
+  if (typeof name !== 'string' || typeof text !== 'string' || text.length > 50 * 1024 * 1024) return false;
+  const win = BrowserWindow.fromWebContents(event.sender);
+  if (!win) return false;
+  const safe = name.replace(/[^\w.-]+/g, '_').slice(0, 80) || 'muster-file';
+  // Tests choose the folder instead of a dialog.
+  let target = process.env.MUSTER_TEST_DOWNLOAD_DIR ? join(process.env.MUSTER_TEST_DOWNLOAD_DIR, safe) : undefined;
+  if (!target) {
+    const ext = extname(safe).slice(1);
+    const r = await dialog.showSaveDialog(win, { defaultPath: safe, ...(ext ? { filters: [{ name: ext.toUpperCase(), extensions: [ext] }] } : {}) });
+    if (r.canceled || !r.filePath) return false;
+    target = r.filePath;
+  }
+  await writeFile(target, text, 'utf8');
+  return true;
+}
+
 function buildMenu() {
   const template: Electron.MenuItemConstructorOptions[] = [
     { label: 'File', submenu: [{ role: 'quit' }] },
@@ -153,10 +176,7 @@ if (!app.requestSingleInstanceLock()) {
     session.defaultSession.setPermissionRequestHandler((_wc, permission, callback) => callback(permission === 'clipboard-sanitized-write'));
     session.defaultSession.setPermissionCheckHandler((_wc, permission) => permission === 'clipboard-sanitized-write');
     ipcMain.handle('muster:save-pdf', savePdf);
-    // Saving a file from the page (a backup) shows the system "Save as" dialog. Tests choose the folder instead.
-    session.defaultSession.on('will-download', (_event, item) => {
-      if (process.env.MUSTER_TEST_DOWNLOAD_DIR) item.setSavePath(join(process.env.MUSTER_TEST_DOWNLOAD_DIR, basename(item.getFilename())));
-    });
+    ipcMain.handle('muster:save-file', saveFile);
     buildMenu();
     createWindow();
     app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });

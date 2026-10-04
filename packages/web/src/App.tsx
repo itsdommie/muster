@@ -5,6 +5,7 @@ import {
 } from '@muster/shared';
 import sample from '../../../packs/sample.json';
 import { BackupDialog } from './BackupDialog';
+import { saveTextFile } from './file';
 import { ExportDialog, ImportDialog, PackDialog } from './Dialogs';
 import { FightView } from './FightView';
 import { GameView } from './GameView';
@@ -208,10 +209,7 @@ export function App() {
       void window.muster.shareText(list.name, text());
       return;
     }
-    const url = URL.createObjectURL(new Blob([text()], { type: 'text/plain' }));
-    const a = Object.assign(document.createElement('a'), { href: url, download: `${list.name.replace(/[^\w-]+/g, '_') || 'list'}.txt` });
-    a.click();
-    URL.revokeObjectURL(url);
+    void saveTextFile(`${list.name.replace(/[^\w-]+/g, '_') || 'list'}.txt`, 'text/plain', text());
   };
 
   /** Make `next` the active pack, landing on one of its lists (creating one the first time). */

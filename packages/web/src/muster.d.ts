@@ -5,7 +5,7 @@ interface Window {
     savePdf(suggestedName: string): Promise<boolean>;
     /** Android: hand the list text to the system share sheet. Absent on desktop, where the list is saved as a file instead. */
     shareText?(name: string, text: string): Promise<boolean>;
-    /** Android: put a text file in front of the system share sheet (a web view cannot save files itself). Absent elsewhere. */
+    /** Desktop: a Save dialog, then write the file. Android: the system share sheet (a web view cannot save files itself). Absent in a browser. */
     saveFile?(name: string, mime: string, text: string): Promise<boolean>;
   };
 }
