@@ -20,14 +20,25 @@ test.afterAll(async () => {
   await device?.close();
 });
 
-/** Start the app from a clean slate (or, with `fresh: false`, from its saved data), and attach to its web view. */
+/**
+ * Start the app from a clean slate (or, with `fresh: false`, from its saved data), and attach to its web view. Attaching occasionally
+ * misses a freshly started process on a slow machine, so a missing web view means "start the app again", not "the app is broken".
+ */
 async function launch(fresh = true): Promise<Page> {
-  await device.shell(`am force-stop ${PKG}`);
-  if (fresh) await device.shell(`pm clear ${PKG}`);
-  await device.shell(`am start -n ${PKG}/.MainActivity`);
-  const page = await (await device.webView({ pkg: PKG })).page();
-  await expect(page.getByRole('heading', { name: 'Muster', level: 1 })).toBeVisible();
-  return page;
+  let lastError: unknown;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    await device.shell(`am force-stop ${PKG}`);
+    if (fresh && attempt === 0) await device.shell(`pm clear ${PKG}`);
+    await device.shell(`am start -n ${PKG}/.MainActivity`);
+    try {
+      const page = await (await device.webView({ pkg: PKG }, { timeout: 20_000 })).page();
+      await expect(page.getByRole('heading', { name: 'Muster', level: 1 })).toBeVisible();
+      return page;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw lastError;
 }
 
 /**
@@ -57,7 +68,10 @@ test('is the right app, works fully offline, and asks for no permissions', async
   const info = await shell(`dumpsys package ${PKG}`);
   expect(info).toContain('versionName=0.1.0');
   expect(info).not.toContain('android.permission.INTERNET');
-  await expect(page.getByRole('heading', { name: 'Realm of the Vale', level: 2 })).toBeHidden(); // the library is its own tab on a phone
+  // On a phone the unit library is its own tab. If this fails, the numbers say whether the web view reported a desktop-sized page.
+  const viewport = await page.evaluate(() => ({ width: window.innerWidth, dpr: window.devicePixelRatio, narrow: matchMedia('(max-width: 960px)').matches }));
+  expect(viewport, JSON.stringify(viewport)).toMatchObject({ narrow: true });
+  await expect(page.getByRole('heading', { name: 'Realm of the Vale', level: 2 })).toBeHidden();
   await sections(page).getByRole('button', { name: 'Add' }).click();
   await expect(page.getByRole('heading', { name: 'Realm of the Vale', level: 2 })).toBeVisible();
 });
