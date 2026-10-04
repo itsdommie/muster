@@ -38,6 +38,11 @@ test.beforeAll(async () => {
   test.setTimeout(420_000);
   if (!existsSync(APK)) throw new Error(`No APK at ${APK}. Run \`npm run apk\` first.`);
   device = await readyDevice();
+  // Keep the screen on and unlocked for the whole run: a key press or a share sheet needs the app to be the window on top.
+  await device.shell('svc power stayon true');
+  await device.shell('settings put system screen_off_timeout 2147483647');
+  await device.shell('input keyevent KEYCODE_WAKEUP');
+  await device.shell('wm dismiss-keyguard');
   for (let attempt = 1; ; attempt++) {
     try {
       await device.installApk(APK);
@@ -84,6 +89,8 @@ async function launch(fresh = true): Promise<Page> {
     try {
       const page = await (await device.webView({ pkg: PKG }, { timeout: 20_000 })).page();
       await expect(page.getByRole('heading', { name: 'Muster', level: 1 })).toBeVisible();
+      // Being attachable is not the same as being on screen: key presses and system dialogs need the app to hold the focus.
+      await expect.poll(focused, { timeout: 15_000 }).toContain(PKG);
       return page;
     } catch (error) {
       lastError = error;
