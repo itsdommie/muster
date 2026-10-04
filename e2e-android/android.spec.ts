@@ -53,6 +53,19 @@ test.beforeAll(async () => {
   await device.shell(`am force-stop ${PKG}`);
 });
 
+// When a test fails, say what the device saw: a dead app or web view looks the same as a lost connection from the test's side.
+test.afterEach(async ({}, testInfo) => {
+  if (testInfo.status === testInfo.expectedStatus || !device) return;
+  const grab = async (cmd: string) => (await device.shell(cmd).catch((e: unknown) => String(e))).toString().trim();
+  const lines = [
+    `app process: ${(await grab(`pidof ${PKG}`)) || 'NOT RUNNING'}`,
+    `focus: ${(await grab('dumpsys window | grep mCurrentFocus'))}`,
+    `crash log:\n${(await grab('logcat -d -b crash -t 40')) || '(empty)'}`,
+    `process deaths and ANRs:\n${(await grab(`logcat -d -t 600 | grep -iE "has died|Process ${PKG}|ANR in|FATAL|Force finishing|am_kill|am_proc_died|lowmemorykiller" | tail -15`)) || '(none)'}`,
+  ];
+  console.log(`\n--- device state after "${testInfo.title}" failed ---\n${lines.join('\n')}\n---`);
+});
+
 test.afterAll(async () => {
   await device?.close();
 });
@@ -65,6 +78,7 @@ async function launch(fresh = true): Promise<Page> {
   let lastError: unknown;
   for (let attempt = 0; attempt < 3; attempt++) {
     await device.shell(`am force-stop ${PKG}`);
+    if (attempt === 0) await device.shell('logcat -c'); // so a failure report only shows this test
     if (fresh && attempt === 0) await device.shell(`pm clear ${PKG}`);
     await device.shell(`am start -n ${PKG}/.MainActivity`);
     try {
