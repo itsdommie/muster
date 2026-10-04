@@ -64,6 +64,10 @@ jobs:
           api-level: 34
           arch: x86_64
           target: google_apis
+          # The default (2.5 GB, 2 cores) is tight with Google's services running: Android's low-memory killer was seen ending the app
+          # mid-test. The runner has 16 GB and 4 cores.
+          ram-size: 4096M
+          cores: 4
           disable-animations: true
           script: npx playwright test -c playwright.android.config.ts
       - uses: actions/upload-artifact@v4
