@@ -38,11 +38,13 @@ test.beforeAll(async () => {
   test.setTimeout(420_000);
   if (!existsSync(APK)) throw new Error(`No APK at ${APK}. Run \`npm run apk\` first.`);
   device = await readyDevice();
-  // Keep the screen on and unlocked for the whole run: a key press or a share sheet needs the app to be the window on top.
-  await device.shell('svc power stayon true');
-  await device.shell('settings put system screen_off_timeout 2147483647');
-  await device.shell('input keyevent KEYCODE_WAKEUP');
-  await device.shell('wm dismiss-keyguard');
+  // Keep the screen on and unlocked for the whole run: a key press or a share sheet needs the app to be the window on top. These are
+  // best-effort and time-limited, so a command that hangs on some image costs seconds and is named in the log, not the whole run.
+  for (const cmd of ['svc power stayon true', 'settings put system screen_off_timeout 2147483647', 'input keyevent KEYCODE_WAKEUP', 'wm dismiss-keyguard']) {
+    const started = Date.now();
+    const done = await Promise.race([device.shell(cmd).then(() => true, () => false), new Promise<boolean>((r) => setTimeout(() => r(false), 20_000))]);
+    console.log(`setup: ${cmd} -> ${done ? 'ok' : 'did not finish'} (${Date.now() - started} ms)`);
+  }
   for (let attempt = 1; ; attempt++) {
     try {
       await device.installApk(APK);
@@ -52,6 +54,7 @@ test.beforeAll(async () => {
       await new Promise((r) => setTimeout(r, 5000));
     }
   }
+  console.log('setup: installed; warming up the app');
   await device.shell(`am start -n ${PKG}/.MainActivity`);
   const warm = await (await device.webView({ pkg: PKG }, { timeout: 240_000 })).page();
   await expect(warm.getByRole('heading', { name: 'Muster', level: 1 })).toBeVisible({ timeout: 60_000 });
