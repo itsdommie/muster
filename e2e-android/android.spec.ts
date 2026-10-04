@@ -101,9 +101,15 @@ test('the system Back button steps back through the views', async () => {
   await expect(page).toHaveURL('https://localhost/');
   expect(await focused()).toContain(PKG);
 
-  // From the first screen, Back sends the app to the background but keeps it alive (and its screen as it was).
+  // From the first screen, Back sends the app to the background but keeps it alive (and its screen as it was). A slow emulator can take
+  // a while to bring its launcher forward, so wait for the app to stop being the resumed activity, and show the state if it never does.
+  const resumed = async () => (await shell('dumpsys activity activities')).split('\n').filter((l) => /ResumedActivity/.test(l)).join('\n');
   await device.shell('input keyevent KEYCODE_BACK');
-  await expect.poll(focused).not.toContain(PKG);
+  try {
+    await expect.poll(async () => (await resumed()).includes(PKG), { timeout: 30_000 }).toBe(false);
+  } catch (error) {
+    throw new Error(`Back at the first screen did not background the app. Resumed activity: ${await resumed()}\nFocus: ${await focused()}\n${String(error)}`);
+  }
   expect((await shell(`pidof ${PKG}`)).trim()).not.toBe('');
 });
 
