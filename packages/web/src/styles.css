@@ -82,7 +82,8 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, monospace; 
 .topbar h1 { font-size: 1.4rem; color: var(--accent); letter-spacing: .04em; }
 .list-picker { display: flex; gap: .4rem; flex-wrap: wrap; }
 .list-picker select { min-width: 0; max-width: 220px; }
-.pack-btn { margin-left: auto; max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.topbar-actions { margin-left: auto; display: flex; gap: .5rem; max-width: 100%; }
+.pack-btn { max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .banner { background: color-mix(in srgb, var(--warn) 18%, var(--surface)); border: 1px solid var(--warn); border-radius: var(--radius); padding: .5rem .75rem; }
 
@@ -168,7 +169,7 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, monospace; 
   .layout { grid-template-columns: minmax(0, 1fr); }
   .layout > .panel { display: none; position: static; max-height: none; }
   .layout.tab-units > .library, .layout.tab-list > .list-panel, .layout.tab-summary > .summary { display: block; }
-  .pack-btn { max-width: 100%; flex: 1 1 100%; }
+  .pack-btn { max-width: 100%; }
   .topbar { gap: .5rem; }
 }
 
@@ -389,4 +390,19 @@ button.danger:hover:not(:disabled) { border-color: var(--bad); color: var(--bad)
   .subnav button { flex: 1; }
   .pairing .result { margin-left: 0; width: 100%; }
   .views button { padding-inline: .3rem; font-size: .88rem; }
+}
+
+/* Backup */
+.due { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--warn); margin-left: .45rem; vertical-align: middle; }
+.backup section { padding: .75rem 0; border-top: 1px solid var(--border); }
+.backup section:first-of-type { margin-top: .5rem; }
+.backup h3 { margin-bottom: .3rem; }
+.restore-preview { margin-top: .75rem; padding: .75rem 1rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-2); }
+.choices { border: none; padding: 0; margin: .6rem 0; display: grid; gap: .5rem; }
+.choices label { display: grid; grid-template-columns: auto 1fr; gap: .1rem .5rem; align-items: start; }
+.choices label > span { grid-column: 2; }
+.choices legend { padding: 0; margin-bottom: .2rem; }
+@media (max-width: 960px) {
+  .topbar-actions { width: 100%; }
+  .topbar-actions .pack-btn { flex: 1 1 auto; min-width: 0; }
 }

@@ -247,6 +247,34 @@ test('a tournament can be run on the phone, and the collection counts models', a
   await expect(page.getByRole('region', { name: 'Progress' })).toContainText('1 of 1 rounds played');
 });
 
+test('a backup is offered to the share sheet as a real file, and the file picker opens for restoring', async () => {
+  const page = await launch();
+  await views(page).getByRole('button', { name: 'More' }).click();
+  await page.getByRole('navigation', { name: 'More sections' }).getByRole('button', { name: 'Collection' }).click();
+  for (let i = 0; i < 2; i++) await page.getByRole('button', { name: 'Vale Archer painted up' }).click();
+
+  await page.getByRole('button', { name: /^Backup/ }).click();
+  const dialog = page.getByRole('dialog', { name: 'Backup and restore' });
+  await dialog.getByRole('button', { name: 'Share backup file…' }).click();
+  await expect.poll(focused, { timeout: 20_000 }).toMatch(/Chooser|Resolver|Intent|sharesheet/i);
+
+  // The file the share sheet was handed exists in the app's cache and is a valid backup.
+  // (`ls` prints in columns when it is not on a terminal, so split on any whitespace.)
+  const name = (await shell(`run-as ${PKG} ls cache`)).split(/\s+/).find((l) => /^muster-backup-.*\.json$/.test(l));
+  expect(name, 'a backup file in the cache').toBeTruthy();
+  const backup = JSON.parse(await shell(`run-as ${PKG} cat cache/${name}`));
+  expect(backup).toMatchObject({ app: 'muster', format: 1 });
+  expect(backup.data.collections.sample['vale-archer'].painted).toBe(2);
+  await device.shell('input keyevent KEYCODE_BACK');
+  await expect.poll(focused).toContain(PKG);
+
+  // Restoring opens Android's own file picker (a web view cannot show one by itself).
+  await dialog.getByText('Choose backup file…').click();
+  await expect.poll(focused, { timeout: 20_000 }).toMatch(/documentsui|picker|filepicker|files/i);
+  await device.shell('input keyevent KEYCODE_BACK');
+  await expect.poll(focused).toContain(PKG);
+});
+
 test('the screen is laid out for the phone: no sideways scroll, big touch targets', async () => {
   const page = await launch();
   expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);

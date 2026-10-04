@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  addUnit, addWarband, exportText, loadPack, newId, newList, validateList,
-  type ArmyList, type Collection, type GameRecord, type PackIndex, type Tournament, type Unit,
+  addUnit, addWarband, countData, exportText, loadPack, newId, newList, restore, validateList,
+  type AppData, type ArmyList, type Backup, type Collection, type GameRecord, type PackIndex, type RestoreMode, type Tournament, type Unit,
 } from '@muster/shared';
 import sample from '../../../packs/sample.json';
+import { BackupDialog } from './BackupDialog';
 import { ExportDialog, ImportDialog, PackDialog } from './Dialogs';
 import { FightView } from './FightView';
 import { GameView } from './GameView';
@@ -14,7 +15,8 @@ import { RulesView } from './RulesView';
 import { MoreView, moreSection, type MoreSection } from './MoreView';
 import { useRoute, type View } from './route';
 import {
-  clearCustomPack, loadCollections, loadCurrent, loadCustomPack, loadGames, loadLists, loadTournaments, saveCollections, saveCurrent, saveCustomPack, saveGames, saveLists, saveTournaments,
+  clearCustomPack, loadCollections, loadCurrent, loadCustomPack, loadGames, loadLastBackup, loadLists, loadTournaments, saveCollections, saveCurrent, saveCustomPack, saveGames,
+  saveLastBackup, saveLists, saveTournaments,
 } from './storage';
 import { SummaryPanel } from './SummaryPanel';
 import { UnitCard } from './UnitCard';
@@ -52,7 +54,8 @@ export function App() {
   const [selected, setSelected] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>('list');
   const [inspect, setInspect] = useState<Unit | null>(null);
-  const [dialog, setDialog] = useState<'import' | 'pack' | 'export' | null>(null);
+  const [dialog, setDialog] = useState<'import' | 'pack' | 'export' | 'backup' | null>(null);
+  const [lastBackup, setLastBackup] = useState<number | null>(loadLastBackup);
   const [copied, setCopied] = useState(false);
   const [saveFailed, setSaveFailed] = useState(false);
   const copyTimer = useRef<number | undefined>(undefined);
@@ -131,6 +134,50 @@ export function App() {
     if (v === 'more') go('more', lastMoreSub);
     else setView(v);
   };
+  // --- Backup and restore ---
+  const snapshot = (): AppData => ({ lists, games, collections, tournaments, customPack: loadCustomPack() ?? null });
+  const hasData = games.length > 0 || tournaments.length > 0 || lists.some((l) => l.warbands.length > 0) || countData(snapshot()).models > 0;
+  const backupDue = hasData && (lastBackup === null || Date.now() - lastBackup > 30 * 24 * 3600 * 1000);
+
+  /** Apply a backup to this device, and say what happened. */
+  const applyRestore = (backup: Backup, mode: RestoreMode): string => {
+    const before = snapshot();
+    const merged = restore(before, backup.data, mode);
+    let nextPack = { index, custom };
+    let note = '';
+    if (JSON.stringify(merged.customPack) !== JSON.stringify(before.customPack)) {
+      if (merged.customPack === null) {
+        clearCustomPack();
+        nextPack = samplePack();
+      } else {
+        const r = loadPack(merged.customPack);
+        if (r.ok) {
+          saveCustomPack(merged.customPack);
+          nextPack = { index: r.index, custom: true };
+          note = ` Now using the data pack "${r.index.pack.name}".`;
+        } else note = ' The backup\'s data pack could not be read, so the current one was kept.';
+      }
+    }
+    // Whatever pack is now active needs a list to show.
+    let nextLists = merged.lists;
+    let active = nextLists.find((l) => l.id === currentId && l.pack === nextPack.index.pack.id) ?? nextLists.find((l) => l.pack === nextPack.index.pack.id);
+    if (!active) {
+      active = newList(nextPack.index);
+      nextLists = [...nextLists, active];
+    }
+    setLists(nextLists);
+    setGames(merged.games);
+    setCollections(merged.collections);
+    setTournaments(merged.tournaments);
+    setCurrentId(active.id);
+    if (nextPack.index !== index) setPack(nextPack);
+    setSelected(null);
+    setUnitSelected(null);
+    setFocusRule(null);
+    const c = countData(merged);
+    return `Restored. This device now has ${c.lists} list${c.lists === 1 ? '' : 's'}, ${c.games} game${c.games === 1 ? '' : 's'}, ${c.tournaments} tournament${c.tournaments === 1 ? '' : 's'} and ${c.models} model${c.models === 1 ? '' : 's'} in the collection.${note}`;
+  };
+
   const collection = collections[index.pack.id] ?? {};
   const editCollection = (fn: (c: Collection) => Collection) => setCollections((all) => ({ ...all, [index.pack.id]: fn(all[index.pack.id] ?? {}) }));
   const playScenario = (id: string) => {
@@ -201,9 +248,14 @@ export function App() {
             </button>
           ))}
         </nav>
-        <button className="pack-btn" onClick={() => setDialog('pack')} title="Data pack">
-          {index.pack.name}
-        </button>
+        <div className="topbar-actions">
+          <button className="pack-btn" onClick={() => setDialog('pack')} title="Data pack">
+            {index.pack.name}
+          </button>
+          <button onClick={() => setDialog('backup')} title="Save a backup, or restore one">
+            Backup{backupDue && <span className="due" role="img" aria-label="backup due" />}
+          </button>
+        </div>
       </header>
       {saveFailed && <p className="banner">Browser storage is unavailable, so changes will be lost when you close the app. Use “Copy as text” to keep a list.</p>}
 
@@ -268,6 +320,12 @@ export function App() {
       {inspect && <UnitCard index={index} unit={inspect} onClose={() => setInspect(null)} onRule={openRule} />}
       {dialog === 'import' && <ImportDialog index={index} onImport={createList} onClose={() => setDialog(null)} />}
       {dialog === 'export' && <ExportDialog text={text()} onClose={() => setDialog(null)} />}
+      {dialog === 'backup' && (
+        <BackupDialog
+          data={snapshot()} lastBackup={lastBackup} onClose={() => setDialog(null)}
+          onBackedUp={(at) => { setLastBackup(at); saveLastBackup(at); }} onRestore={applyRestore}
+        />
+      )}
       {dialog === 'pack' && <PackDialog index={index} custom={custom} onLoad={loadCustom} onReset={resetPack} onClose={() => setDialog(null)} />}
       <PrintSheet index={index} list={list} validation={validation} />
     </div>

@@ -60,3 +60,10 @@ export const loadTournaments = (): Tournament[] => {
   return Array.isArray(raw) ? raw : [];
 };
 export const saveTournaments = (all: Tournament[]): boolean => write(TOURNAMENTS, all);
+
+const LAST_BACKUP = 'muster.lastBackup.v1';
+export const loadLastBackup = (): number | null => {
+  const t = read<number>(LAST_BACKUP);
+  return typeof t === 'number' ? t : null;
+};
+export const saveLastBackup = (t: number): boolean => write(LAST_BACKUP, t);

@@ -26,6 +26,12 @@ npm run validate-pack -- packs/sample.json
 | `packages/mobile` | Capacitor wrapper that builds the Android APK around the same UI. No permissions at all (it cannot touch the network); print and share go through two small native bridges. |
 | `packages/desktop` | Electron shell for Windows and Linux. Serves the built UI from a sandboxed `app://` protocol (no local server, no network), with a native Save-as-PDF. |
 
+### Releases
+
+Pushing a tag such as `v0.1.0` (it must match the version in `packages/desktop/package.json` and `packages/mobile/package.json`) makes CI build everything and publish a GitHub release with the Windows installer, the Linux AppImage and deb, the Android APK, and `SHA256SUMS.txt`. Releases below 1.0 are marked pre-release. The text is in `.github/release-notes.md`.
+
+The Windows installer is not code-signed. The Android APK is signed with a throwaway debug key unless you add a release key as repository secrets: `ANDROID_KEYSTORE_BASE64` (the keystore file, base64-encoded), `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS` and `ANDROID_KEY_PASSWORD`. Create the key once (`keytool -genkeypair -v -keystore muster.jks -alias muster -keyalg RSA -keysize 2048 -validity 10000`), keep the file and passwords somewhere safe outside the repository, and never lose them: Android only lets an app update when the new version is signed by the same key.
+
 ### Android app
 
 ```

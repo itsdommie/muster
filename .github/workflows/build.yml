@@ -29,6 +29,9 @@ jobs:
     name: Android APK and emulator tests
     runs-on: ubuntu-latest
     timeout-minutes: 40
+    env:
+      # Present only if the signing key has been added to the repository's secrets (see README). Without it, releases carry the debug APK.
+      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -67,6 +70,23 @@ jobs:
         with:
           name: muster-android-debug
           path: packages/mobile/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+      - name: Build the signed release APK (releases only, and only if the signing key is configured)
+        if: startsWith(github.ref, 'refs/tags/v') && env.ANDROID_KEYSTORE_BASE64 != ''
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/muster.keystore"
+          export ANDROID_KEYSTORE_PATH="$RUNNER_TEMP/muster.keystore"
+          npm run release -w @muster/mobile
+          rm -f "$RUNNER_TEMP/muster.keystore"
+      - uses: actions/upload-artifact@v4
+        if: startsWith(github.ref, 'refs/tags/v') && env.ANDROID_KEYSTORE_BASE64 != ''
+        with:
+          name: muster-android-release
+          path: packages/mobile/android/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
 
   build:
@@ -120,3 +140,46 @@ jobs:
             release/*.deb
             release/*.exe
           if-no-files-found: error
+
+  # Pushing a tag such as v0.1.0 publishes a GitHub release with every installer. The tag must match the apps' version numbers.
+  release:
+    name: Publish the GitHub release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [web, build, android]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+      - name: Gather the files and publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG="$GITHUB_REF_NAME"
+          VERSION="${TAG#v}"
+          for pkg in packages/desktop packages/mobile; do
+            v=$(node -p "require('./$pkg/package.json').version")
+            [ "$v" = "$VERSION" ] || { echo "::error::$pkg is version $v but the tag is $TAG"; exit 1; }
+          done
+          ls -la artifacts
+          mkdir out
+          cp artifacts/Muster-Setup-"$VERSION".exe artifacts/Muster-"$VERSION"-x86_64.AppImage artifacts/Muster-"$VERSION"-amd64.deb out/
+          if [ -f artifacts/app-release.apk ]; then
+            cp artifacts/app-release.apk "out/Muster-$VERSION-android.apk"
+          else
+            cp artifacts/app-debug.apk "out/Muster-$VERSION-android-debug.apk"
+          fi
+          (cd out && sha256sum * > SHA256SUMS.txt && cat SHA256SUMS.txt)
+          sed "s/{{version}}/$VERSION/g" .github/release-notes.md > notes.md
+          PRE=""
+          case "$VERSION" in 0.*|*-*) PRE="--prerelease" ;; esac
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            gh release upload "$TAG" out/* --clobber
+          else
+            gh release create "$TAG" out/* --title "Muster $VERSION" --notes-file notes.md --verify-tag $PRE
+          fi

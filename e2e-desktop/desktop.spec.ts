@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { cpSync, existsSync, mkdtempSync, readFileSync, statSync } from 'node:fs';
+import { cpSync, existsSync, mkdtempSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join, relative } from 'node:path';
@@ -138,6 +138,46 @@ test('the collection and a tournament are kept across a restart', async () => {
   await more('Tournament').click();
   await expect(page.getByRole('region', { name: 'Progress' })).toContainText('Club night');
   await expect(page.locator('.pairing .result').first()).toContainText('wins'); // the entered result survived
+  await app.close();
+});
+
+test('a backup saves as a real file and restores into a brand-new profile', async () => {
+  const downloads = mkdtempSync(join(tmpdir(), 'muster-downloads-'));
+  let app = await launch(mkdtempSync(join(tmpdir(), 'muster-data-')), { MUSTER_TEST_DOWNLOAD_DIR: downloads });
+  let page = await app.firstWindow();
+
+  await page.getByRole('button', { name: '+ Warband' }).click();
+  await page.getByRole('button', { name: 'Add Aldric the Bold' }).click();
+  await page.getByLabel('List name').fill('Desktop list');
+  await page.getByRole('navigation', { name: 'Views' }).getByRole('button', { name: 'More' }).click();
+  for (let i = 0; i < 2; i++) await page.getByRole('button', { name: 'Vale Archer painted up' }).click();
+
+  await page.getByRole('button', { name: /^Backup/ }).click();
+  await page.getByRole('button', { name: 'Save backup file' }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'Backup saved' })).toBeVisible();
+  // The save finishes a moment after the click; wait for a complete file (a partial one would not parse).
+  const read = () => {
+    const names = readdirSync(downloads);
+    if (names.length !== 1) return null;
+    try { return { name: names[0]!, backup: JSON.parse(readFileSync(join(downloads, names[0]!), 'utf8')) }; } catch { return null; }
+  };
+  await expect.poll(read, { timeout: 10_000 }).not.toBeNull();
+  const { name: fileName, backup } = read()!;
+  const files = [fileName];
+  expect(files[0]).toMatch(/^muster-backup-\d{4}-\d{2}-\d{2}\.json$/);
+  expect(backup).toMatchObject({ app: 'muster', format: 1 });
+  expect(backup.data.lists.map((l: { name: string }) => l.name)).toEqual(['Desktop list']);
+  await app.close();
+
+  // A different profile, as on another computer.
+  app = await launch(mkdtempSync(join(tmpdir(), 'muster-data-')));
+  page = await app.firstWindow();
+  await page.getByRole('button', { name: /^Backup/ }).click();
+  await page.locator('input[type=file]').setInputFiles(join(downloads, files[0]!));
+  await page.getByRole('button', { name: 'Restore' }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'Restored.' })).toBeVisible();
+  await page.getByRole('button', { name: 'Close' }).click();
+  await expect(page.getByRole('combobox', { name: 'Saved lists' }).locator('option')).toContainText(['New list', 'Desktop list']);
   await app.close();
 });
 

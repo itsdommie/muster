@@ -1,7 +1,7 @@
 import { app, BrowserWindow, dialog, ipcMain, Menu, net, protocol, session, shell, type IpcMainInvokeEvent } from 'electron';
 import { appendFileSync } from 'node:fs';
 import { writeFile } from 'node:fs/promises';
-import { join, resolve } from 'node:path';
+import { basename, join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { resolveAppPath } from './appPath';
 
@@ -153,6 +153,10 @@ if (!app.requestSingleInstanceLock()) {
     session.defaultSession.setPermissionRequestHandler((_wc, permission, callback) => callback(permission === 'clipboard-sanitized-write'));
     session.defaultSession.setPermissionCheckHandler((_wc, permission) => permission === 'clipboard-sanitized-write');
     ipcMain.handle('muster:save-pdf', savePdf);
+    // Saving a file from the page (a backup) shows the system "Save as" dialog. Tests choose the folder instead.
+    session.defaultSession.on('will-download', (_event, item) => {
+      if (process.env.MUSTER_TEST_DOWNLOAD_DIR) item.setSavePath(join(process.env.MUSTER_TEST_DOWNLOAD_DIR, basename(item.getFilename())));
+    });
     buildMenu();
     createWindow();
     app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });

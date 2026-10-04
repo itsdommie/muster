@@ -1,4 +1,5 @@
 import { App } from '@capacitor/app';
+import { Directory, Encoding, Filesystem } from '@capacitor/filesystem';
 import { registerPlugin } from '@capacitor/core';
 import { Share } from '@capacitor/share';
 
@@ -16,6 +17,18 @@ window.muster = {
       return true;
     } catch {
       return false;
+    }
+  },
+  async saveFile(name: string, _mime: string, text: string): Promise<boolean> {
+    // A web view cannot write a file the person can find, so write it to the app's cache and offer it to the share sheet (save to Drive,
+    // send to another phone, put it in Files...).
+    try {
+      const safe = name.replace(/[^\w.-]+/g, '_').slice(0, 80) || 'muster-file.json';
+      const { uri } = await Filesystem.writeFile({ path: safe, data: text, directory: Directory.Cache, encoding: Encoding.UTF8 });
+      await Share.share({ title: safe, files: [uri], dialogTitle: 'Save backup' });
+      return true;
+    } catch {
+      return false; // dismissed, or nothing to share with
     }
   },
   async shareText(name: string, text: string): Promise<boolean> {

@@ -8,3 +8,4 @@ export * from './game.js';
 export * from './combat.js';
 export * from './collection.js';
 export * from './tournament.js';
+export * from './backup.js';
