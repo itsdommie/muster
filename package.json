@@ -1,0 +1,28 @@
+{
+  "name": "muster",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:web": "npm run dev -w @muster/web",
+    "build:web": "npm run build -w @muster/web",
+    "test": "vitest run",
+    "e2e": "playwright test",
+    "validate-pack": "tsx scripts/validate-pack.ts",
+    "typecheck": "tsc -p packages/shared && tsc -p packages/web && tsc -p packages/desktop",
+    "desktop": "npm start -w @muster/desktop",
+    "desktop:pack": "npm run pack -w @muster/desktop",
+    "desktop:dist": "npm run dist -w @muster/desktop",
+    "e2e:desktop": "npm run build -w @muster/desktop && playwright test -c playwright.desktop.config.ts"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "@types/node": "^24.0.0",
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.0",
+    "vitest": "^5.0.3"
+  }
+}

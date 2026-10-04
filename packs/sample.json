@@ -1,0 +1,700 @@
+{
+  "schema": 1,
+  "id": "sample",
+  "name": "Sample Pack: The Vale Wars",
+  "version": "1.0.0",
+  "author": "Muster contributors",
+  "license": "CC0-1.0",
+  "description": "Invented armies and invented numbers, for demos and tests. Nothing here is taken from any published game. Replace it with your own pack.",
+  "ruleset": {
+    "warbandSize": 12,
+    "break": 0.5,
+    "bowLimit": 0.33,
+    "allyLimits": {
+      "historical": null,
+      "convenient": 25
+    },
+    "combat": {
+      "die": 6,
+      "tie": "higher-fight",
+      "supportBonus": 1,
+      "wound": {
+        "base": 4,
+        "perPoint": 1,
+        "min": 2,
+        "max": 6
+      },
+      "fate": {
+        "target": 4
+      },
+      "might": {
+        "duelBonus": 1
+      }
+    }
+  },
+  "wargear": [
+    {
+      "id": "spear",
+      "name": "Spear",
+      "tags": []
+    },
+    {
+      "id": "sword",
+      "name": "Sword",
+      "tags": []
+    },
+    {
+      "id": "shield",
+      "name": "Shield",
+      "tags": []
+    },
+    {
+      "id": "longbow",
+      "name": "Longbow",
+      "tags": [
+        "bow"
+      ],
+      "description": "Ranged weapon; counts toward the bow limit."
+    },
+    {
+      "id": "javelins",
+      "name": "Javelins",
+      "tags": [
+        "throwing"
+      ],
+      "description": "Thrown weapons; count toward the bow limit."
+    },
+    {
+      "id": "warhorse",
+      "name": "Warhorse",
+      "tags": [
+        "mount"
+      ]
+    },
+    {
+      "id": "great-axe",
+      "name": "Great axe",
+      "tags": []
+    },
+    {
+      "id": "lance",
+      "name": "Lance",
+      "tags": []
+    }
+  ],
+  "rules": [
+    {
+      "id": "stalwart",
+      "name": "Stalwart",
+      "category": "Passive",
+      "text": "A model with this rule may re-roll one failed Courage test per turn."
+    },
+    {
+      "id": "hold-the-line",
+      "name": "Hold the Line",
+      "category": "Passive",
+      "text": "Friendly warriors within 3\" of a model with this rule count as being in a shieldwall."
+    },
+    {
+      "id": "terror",
+      "name": "Terror",
+      "category": "Active",
+      "text": "Enemy models in contact must pass a Courage test before fighting this model, or fight at half their Fight value."
+    },
+    {
+      "id": "brutal-charge",
+      "name": "Brutal Charge",
+      "category": "Active",
+      "text": "On the turn this model charges, it gains +1 Strength on its first strike."
+    },
+    {
+      "id": "hex",
+      "name": "Hex",
+      "category": "Magic",
+      "text": "Range 12\". Target an enemy model; it suffers -1 to its Fight value until the end of the turn."
+    },
+    {
+      "id": "mend",
+      "name": "Mend",
+      "category": "Magic",
+      "text": "Range 6\". Target a friendly hero; it recovers one lost Wound."
+    },
+    {
+      "id": "light-footed",
+      "name": "Light Footed",
+      "category": "Passive",
+      "text": "This model ignores difficult terrain when moving."
+    },
+    {
+      "id": "pack-tactics",
+      "name": "Pack Tactics",
+      "category": "Passive",
+      "text": "Gains +1 to its Fight value while two or more friendly models are in contact with the same enemy."
+    }
+  ],
+  "units": [
+    {
+      "id": "aldric-the-bold",
+      "name": "Aldric the Bold",
+      "kind": "hero",
+      "tier": "Champion",
+      "cost": 90,
+      "unique": true,
+      "stats": {
+        "move": 6,
+        "fight": 6,
+        "shoot": 4,
+        "strength": 4,
+        "defence": 6,
+        "attacks": 3,
+        "wounds": 3,
+        "courage": 6,
+        "might": 3,
+        "will": 3,
+        "fate": 3
+      },
+      "wargear": [
+        "sword",
+        "shield"
+      ],
+      "rules": [
+        "stalwart",
+        "hold-the-line"
+      ],
+      "keywords": [
+        "Infantry",
+        "Hero"
+      ],
+      "options": [
+        {
+          "id": "warhorse",
+          "name": "Warhorse",
+          "cost": 10,
+          "wargear": "warhorse",
+          "group": "mount"
+        },
+        {
+          "id": "lance",
+          "name": "Lance",
+          "cost": 5,
+          "wargear": "lance",
+          "group": "weapon"
+        }
+      ],
+      "warband": {
+        "size": 15
+      }
+    },
+    {
+      "id": "sera-windfletcher",
+      "name": "Sera Windfletcher",
+      "kind": "hero",
+      "tier": "Captain",
+      "cost": 60,
+      "unique": true,
+      "stats": {
+        "move": 7,
+        "fight": 5,
+        "shoot": 3,
+        "strength": 3,
+        "defence": 4,
+        "attacks": 2,
+        "wounds": 2,
+        "courage": 5,
+        "might": 2,
+        "will": 2,
+        "fate": 2
+      },
+      "wargear": [
+        "sword",
+        "longbow"
+      ],
+      "rules": [
+        "light-footed"
+      ],
+      "keywords": [
+        "Infantry",
+        "Hero"
+      ],
+      "options": [
+        {
+          "id": "warhorse",
+          "name": "Warhorse",
+          "cost": 10,
+          "wargear": "warhorse",
+          "group": "mount"
+        }
+      ]
+    },
+    {
+      "id": "old-marren",
+      "name": "Old Marren",
+      "kind": "hero",
+      "tier": "Sage",
+      "cost": 55,
+      "unique": true,
+      "stats": {
+        "move": 6,
+        "fight": 3,
+        "shoot": null,
+        "strength": 3,
+        "defence": 3,
+        "attacks": 1,
+        "wounds": 3,
+        "courage": 7,
+        "might": 1,
+        "will": 6,
+        "fate": 1
+      },
+      "wargear": [],
+      "rules": [
+        "mend"
+      ],
+      "keywords": [
+        "Infantry",
+        "Hero",
+        "Wizard"
+      ],
+      "warband": {
+        "size": 6,
+        "allowed": [
+          "vale-spearman",
+          "vale-archer"
+        ]
+      }
+    },
+    {
+      "id": "vale-spearman",
+      "name": "Vale Spearman",
+      "kind": "warrior",
+      "cost": 8,
+      "stats": {
+        "move": 6,
+        "fight": 3,
+        "shoot": null,
+        "strength": 3,
+        "defence": 4,
+        "attacks": 1,
+        "wounds": 1,
+        "courage": 3
+      },
+      "wargear": [
+        "spear"
+      ],
+      "rules": [
+        "hold-the-line"
+      ],
+      "keywords": [
+        "Infantry"
+      ],
+      "options": [
+        {
+          "id": "shield",
+          "name": "Shield",
+          "cost": 1,
+          "wargear": "shield",
+          "group": "shield"
+        }
+      ]
+    },
+    {
+      "id": "vale-archer",
+      "name": "Vale Archer",
+      "kind": "warrior",
+      "cost": 9,
+      "stats": {
+        "move": 6,
+        "fight": 2,
+        "shoot": 3,
+        "strength": 3,
+        "defence": 3,
+        "attacks": 1,
+        "wounds": 1,
+        "courage": 3
+      },
+      "wargear": [
+        "longbow"
+      ],
+      "rules": [],
+      "keywords": [
+        "Infantry"
+      ]
+    },
+    {
+      "id": "vale-knight",
+      "name": "Knight of the Vale",
+      "kind": "warrior",
+      "cost": 14,
+      "stats": {
+        "move": 10,
+        "fight": 4,
+        "shoot": null,
+        "strength": 4,
+        "defence": 6,
+        "attacks": 1,
+        "wounds": 1,
+        "courage": 3
+      },
+      "wargear": [
+        "sword",
+        "warhorse"
+      ],
+      "rules": [
+        "brutal-charge"
+      ],
+      "keywords": [
+        "Cavalry"
+      ],
+      "options": [
+        {
+          "id": "lance",
+          "name": "Lance",
+          "cost": 2,
+          "wargear": "lance",
+          "group": "weapon"
+        }
+      ]
+    },
+    {
+      "id": "gorrath-skullmaker",
+      "name": "Gorrath Skullmaker",
+      "kind": "hero",
+      "tier": "Warlord",
+      "cost": 100,
+      "unique": true,
+      "stats": {
+        "move": 6,
+        "fight": 7,
+        "shoot": null,
+        "strength": 5,
+        "defence": 7,
+        "attacks": 3,
+        "wounds": 3,
+        "courage": 7,
+        "might": 3,
+        "will": 2,
+        "fate": 2
+      },
+      "wargear": [
+        "great-axe"
+      ],
+      "rules": [
+        "terror",
+        "brutal-charge"
+      ],
+      "keywords": [
+        "Infantry",
+        "Hero"
+      ],
+      "warband": {
+        "size": 18
+      }
+    },
+    {
+      "id": "vexa-the-hex",
+      "name": "Vexa the Hex",
+      "kind": "hero",
+      "tier": "Witch",
+      "cost": 65,
+      "unique": true,
+      "stats": {
+        "move": 6,
+        "fight": 3,
+        "shoot": null,
+        "strength": 3,
+        "defence": 4,
+        "attacks": 1,
+        "wounds": 2,
+        "courage": 6,
+        "might": 1,
+        "will": 5,
+        "fate": 1
+      },
+      "wargear": [],
+      "rules": [
+        "hex",
+        "terror"
+      ],
+      "keywords": [
+        "Infantry",
+        "Hero",
+        "Wizard"
+      ]
+    },
+    {
+      "id": "grub-chief",
+      "name": "Grub Chief",
+      "kind": "hero",
+      "tier": "Chieftain",
+      "cost": 40,
+      "stats": {
+        "move": 6,
+        "fight": 4,
+        "shoot": 5,
+        "strength": 4,
+        "defence": 5,
+        "attacks": 2,
+        "wounds": 2,
+        "courage": 4,
+        "might": 2,
+        "will": 1,
+        "fate": 1
+      },
+      "wargear": [
+        "sword"
+      ],
+      "rules": [
+        "pack-tactics"
+      ],
+      "keywords": [
+        "Infantry",
+        "Hero"
+      ],
+      "options": [
+        {
+          "id": "javelins",
+          "name": "Javelins",
+          "cost": 3,
+          "wargear": "javelins",
+          "group": "ranged"
+        }
+      ]
+    },
+    {
+      "id": "marsh-raider",
+      "name": "Marsh Raider",
+      "kind": "warrior",
+      "cost": 7,
+      "stats": {
+        "move": 6,
+        "fight": 3,
+        "shoot": 5,
+        "strength": 3,
+        "defence": 4,
+        "attacks": 1,
+        "wounds": 1,
+        "courage": 2
+      },
+      "wargear": [
+        "sword"
+      ],
+      "rules": [
+        "pack-tactics"
+      ],
+      "keywords": [
+        "Infantry"
+      ],
+      "options": [
+        {
+          "id": "shield",
+          "name": "Shield",
+          "cost": 1,
+          "wargear": "shield",
+          "group": "shield"
+        },
+        {
+          "id": "javelins",
+          "name": "Javelins",
+          "cost": 2,
+          "wargear": "javelins",
+          "group": "ranged"
+        }
+      ]
+    },
+    {
+      "id": "crooked-archer",
+      "name": "Crooked Archer",
+      "kind": "warrior",
+      "cost": 8,
+      "stats": {
+        "move": 6,
+        "fight": 2,
+        "shoot": 4,
+        "strength": 3,
+        "defence": 3,
+        "attacks": 1,
+        "wounds": 1,
+        "courage": 2
+      },
+      "wargear": [
+        "longbow"
+      ],
+      "rules": [],
+      "keywords": [
+        "Infantry"
+      ]
+    },
+    {
+      "id": "bog-brute",
+      "name": "Bog Brute",
+      "kind": "warrior",
+      "cost": 12,
+      "stats": {
+        "move": 6,
+        "fight": 4,
+        "shoot": null,
+        "strength": 5,
+        "defence": 5,
+        "attacks": 2,
+        "wounds": 1,
+        "courage": 2
+      },
+      "wargear": [
+        "great-axe"
+      ],
+      "rules": [
+        "brutal-charge"
+      ],
+      "keywords": [
+        "Infantry"
+      ]
+    },
+    {
+      "id": "warden-hale",
+      "name": "Warden Hale",
+      "kind": "hero",
+      "tier": "Warden",
+      "cost": 50,
+      "stats": {
+        "move": 7,
+        "fight": 5,
+        "shoot": 3,
+        "strength": 4,
+        "defence": 5,
+        "attacks": 2,
+        "wounds": 2,
+        "courage": 5,
+        "might": 2,
+        "will": 2,
+        "fate": 2
+      },
+      "wargear": [
+        "sword",
+        "longbow"
+      ],
+      "rules": [
+        "light-footed"
+      ],
+      "keywords": [
+        "Infantry",
+        "Hero"
+      ]
+    },
+    {
+      "id": "march-scout",
+      "name": "March Scout",
+      "kind": "warrior",
+      "cost": 7,
+      "stats": {
+        "move": 7,
+        "fight": 3,
+        "shoot": 3,
+        "strength": 3,
+        "defence": 3,
+        "attacks": 1,
+        "wounds": 1,
+        "courage": 3
+      },
+      "wargear": [
+        "longbow"
+      ],
+      "rules": [
+        "light-footed"
+      ],
+      "keywords": [
+        "Infantry"
+      ]
+    }
+  ],
+  "armies": [
+    {
+      "id": "vale-realm",
+      "name": "Realm of the Vale",
+      "side": "Light",
+      "description": "Disciplined spear lines and long-range archers defending the river valleys.",
+      "bonus": {
+        "name": "Shield of the Realm",
+        "text": "While the force is at more than half strength, friendly warriors may re-roll a failed Courage test once per game."
+      },
+      "units": [
+        {
+          "unit": "aldric-the-bold"
+        },
+        {
+          "unit": "sera-windfletcher"
+        },
+        {
+          "unit": "old-marren"
+        },
+        {
+          "unit": "vale-spearman"
+        },
+        {
+          "unit": "vale-archer"
+        },
+        {
+          "unit": "vale-knight",
+          "max": 6
+        }
+      ],
+      "allies": [
+        {
+          "army": "free-marches",
+          "level": "historical"
+        }
+      ]
+    },
+    {
+      "id": "hollow-horde",
+      "name": "The Hollow Horde",
+      "side": "Dark",
+      "description": "A sprawling warband of raiders and brutes driven by a charismatic warlord.",
+      "bonus": {
+        "name": "Blood Frenzy",
+        "text": "Once the opposing force is broken, friendly warriors gain +1 Attack for the rest of the game."
+      },
+      "units": [
+        {
+          "unit": "gorrath-skullmaker"
+        },
+        {
+          "unit": "vexa-the-hex"
+        },
+        {
+          "unit": "grub-chief"
+        },
+        {
+          "unit": "marsh-raider"
+        },
+        {
+          "unit": "crooked-archer"
+        },
+        {
+          "unit": "bog-brute",
+          "max": 8
+        }
+      ],
+      "allies": [
+        {
+          "army": "free-marches",
+          "level": "convenient"
+        }
+      ]
+    },
+    {
+      "id": "free-marches",
+      "name": "The Free Marches",
+      "side": "Neutral",
+      "description": "Independent wardens and scouts who sell their bows to whoever holds the border.",
+      "units": [
+        {
+          "unit": "warden-hale"
+        },
+        {
+          "unit": "march-scout"
+        }
+      ],
+      "allies": []
+    }
+  ]
+}

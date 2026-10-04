@@ -1,0 +1,78 @@
+name: Build
+
+# Windows installers can't be built on the Linux dev machine (electron-builder needs Wine there), so this workflow is how they are
+# produced and tested: the NSIS installer is installed silently on a Windows runner and the desktop suite is run against it.
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  web:
+    name: Typecheck, unit and browser tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npx playwright install --with-deps chromium
+      - run: npm run e2e
+
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24 # matches the Node bundled in Electron 44
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - name: Build app bundle
+        run: npm run build -w @muster/desktop
+      - name: Build installers
+        run: npx electron-builder --publish never
+        working-directory: packages/desktop
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false' # no code signing yet
+      # Test the real artifacts, not the unpacked folders: the Linux AppImage itself, and the Windows installer run for real.
+      - name: Smoke test the AppImage (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          export MUSTER_EXE="$(ls "$GITHUB_WORKSPACE"/release/*.AppImage | head -n 1)"
+          chmod +x "$MUSTER_EXE"
+          sudo apt-get install -y --no-install-recommends poppler-utils xvfb
+          xvfb-run -a npx playwright test -c playwright.desktop.config.ts
+        env:
+          APPIMAGE_EXTRACT_AND_RUN: '1'
+      - name: Install and smoke test (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $installer = (Get-ChildItem release\Muster-Setup-*.exe | Select-Object -First 1).FullName
+          Start-Process -FilePath $installer -ArgumentList '/S' -Wait
+          $exe = (Get-ChildItem "$env:LOCALAPPDATA\Programs" -Recurse -Filter Muster.exe | Select-Object -First 1).FullName
+          if (-not $exe) { throw 'Muster.exe was not installed' }
+          Write-Host "Installed at $exe"
+          $env:MUSTER_EXE = $exe
+          npx playwright test -c playwright.desktop.config.ts
+      - uses: actions/upload-artifact@v4
+        with:
+          name: muster-${{ runner.os }}
+          path: |
+            release/*.AppImage
+            release/*.deb
+            release/*.exe
+          if-no-files-found: error

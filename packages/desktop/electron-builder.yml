@@ -1,0 +1,41 @@
+appId: app.muster.desktop
+productName: Muster
+executableName: muster
+copyright: "Unofficial fan project. Contains no game data from any publisher."
+
+directories:
+  output: ../../release
+  buildResources: build
+files:
+  - dist/main.cjs
+  - dist/preload.cjs
+  - package.json
+extraResources:
+  - from: ../web/dist
+    to: web
+  - from: ../../LICENSE
+    to: LICENSE.muster.txt
+  - from: ../../NOTICE.md
+    to: NOTICE.md
+asar: true
+compression: normal
+
+linux:
+  icon: build/icon.png
+  target: [AppImage, deb]
+  category: Game
+  syncDesktopName: true
+  maintainer: Muster contributors <muster@localhost>
+  synopsis: "Army list builder and table companion"
+  artifactName: ${productName}-${version}-${arch}.${ext}
+
+win:
+  icon: build/icon.png
+  target: [{ target: nsis, arch: [x64] }]
+  artifactName: ${productName}-Setup-${version}.${ext}
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  deleteAppDataOnUninstall: false
