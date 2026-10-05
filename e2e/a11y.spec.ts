@@ -14,6 +14,8 @@ async function audit(page: Page, label: string) {
   }
 }
 test.beforeEach(() => { found.length = 0; });
+// One test walks the whole app, auditing as it goes; allow for a slow runner.
+test.setTimeout(180_000);
 
 const nav = (page: Page) => page.getByRole('navigation', { name: 'Views' });
 const sub = (page: Page) => page.getByRole('navigation', { name: 'More sections' });
