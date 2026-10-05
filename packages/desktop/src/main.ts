@@ -1,6 +1,6 @@
 import { app, BrowserWindow, dialog, ipcMain, Menu, net, protocol, session, shell, type IpcMainInvokeEvent } from 'electron';
 import { appendFileSync } from 'node:fs';
-import { writeFile } from 'node:fs/promises';
+import { rename, rm, writeFile } from 'node:fs/promises';
 import { extname, join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { resolveAppPath } from './appPath';
@@ -128,8 +128,17 @@ async function saveFile(event: IpcMainInvokeEvent, name: unknown, _mime: unknown
     if (r.canceled || !r.filePath) return false;
     target = r.filePath;
   }
-  await writeFile(target, text, 'utf8');
-  return true;
+  // Write beside the target and rename into place, so the file is never seen half-written (and an interrupted save cannot leave a
+  // truncated backup where a good one was).
+  const partial = `${target}.part`;
+  try {
+    await writeFile(partial, text, 'utf8');
+    await rename(partial, target);
+    return true;
+  } catch {
+    await rm(partial, { force: true });
+    return false;
+  }
 }
 
 function buildMenu() {

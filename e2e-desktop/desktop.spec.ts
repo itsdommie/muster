@@ -152,8 +152,8 @@ test('a backup saves as a real file and restores into a brand-new profile', asyn
 
   // Exporting a list as text also goes through the main process and a real file.
   await page.getByRole('button', { name: 'Download .txt' }).click();
-  await expect.poll(() => existsSync(join(downloads, 'Desktop_list.txt')), { timeout: 10_000 }).toBe(true);
-  expect(readFileSync(join(downloads, 'Desktop_list.txt'), 'utf8')).toContain('Aldric the Bold [90]');
+  const listFile = join(downloads, 'Desktop_list.txt');
+  await expect.poll(() => (existsSync(listFile) ? readFileSync(listFile, 'utf8') : ''), { timeout: 10_000 }).toContain('Aldric the Bold [90]');
 
   await page.getByRole('navigation', { name: 'Views' }).getByRole('button', { name: 'More' }).click();
   for (let i = 0; i < 2; i++) await page.getByRole('button', { name: 'Vale Archer painted up' }).click();
@@ -163,7 +163,7 @@ test('a backup saves as a real file and restores into a brand-new profile', asyn
   await expect(page.getByRole('status').filter({ hasText: 'Backup saved' })).toBeVisible();
   // The save finishes a moment after the click; wait for a complete file (a partial one would not parse).
   const read = () => {
-    const names = readdirSync(downloads).filter((n) => /^muster-backup-.*\.json$/.test(n));
+    const names = readdirSync(downloads).filter((n) => /^muster-backup-.*\.json$/.test(n)); // (a half-written file is *.json.part)
     if (names.length !== 1) return null;
     try { return { name: names[0]!, backup: JSON.parse(readFileSync(join(downloads, names[0]!), 'utf8')) }; } catch { return null; }
   };
