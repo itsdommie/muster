@@ -4,6 +4,7 @@ import { rename, rm, writeFile } from 'node:fs/promises';
 import { extname, join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { resolveAppPath } from './appPath';
+import { checkNow, startUpdater } from './updater';
 
 // Tests (and portable installs) can relocate all app data.
 if (process.env.MUSTER_USER_DATA) app.setPath('userData', process.env.MUSTER_USER_DATA);
@@ -154,15 +155,10 @@ function buildMenu() {
     },
     {
       label: 'Help',
-      submenu: [{
-        label: 'About Muster',
-        click: () => void dialog.showMessageBox({
-          type: 'info',
-          title: 'About Muster',
-          message: `Muster ${app.getVersion()}`,
-          detail: 'An unofficial, non-commercial fan project. It contains no game data and is not affiliated with or endorsed by any publisher.',
-        }),
-      }],
+      submenu: [
+        { label: 'Check for updates…', click: () => { mainWindow?.webContents.send('muster:menu', 'about'); checkNow(); } },
+        { label: 'About Muster', click: () => mainWindow?.webContents.send('muster:menu', 'about') },
+      ],
     },
   ];
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
@@ -186,6 +182,7 @@ if (!app.requestSingleInstanceLock()) {
     session.defaultSession.setPermissionCheckHandler((_wc, permission) => permission === 'clipboard-sanitized-write');
     ipcMain.handle('muster:save-pdf', savePdf);
     ipcMain.handle('muster:save-file', saveFile);
+    startUpdater((e) => !!e.senderFrame && isAppUrl(e.senderFrame.url));
     buildMenu();
     createWindow();
     app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });

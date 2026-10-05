@@ -475,3 +475,10 @@ textarea.json { font: .8rem/1.4 ui-monospace, monospace; }
   .editor-list { position: static; max-height: 22rem; }
   .editor-tabs button { flex: 1 1 30%; }
 }
+
+/* Updates and About */
+.update-banner { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem 1rem; margin: 8px 0 0; padding: .6rem 1rem; border: 1px solid var(--accent); border-radius: var(--radius); background: color-mix(in srgb, var(--accent) 12%, var(--surface)); }
+.update-banner p { margin: 0; flex: 1 1 320px; }
+.update-banner .meter { flex: 1 1 100%; }
+.about-updates { margin-top: .8rem; padding-top: .8rem; border-top: 1px solid var(--border); display: grid; gap: .5rem; }
+.foot .link { color: var(--accent); text-decoration: underline; }

@@ -4,6 +4,7 @@ import {
   type AppData, type ArmyList, type Backup, type Campaign, type Collection, type PackDraft, type GameRecord, type PackIndex, type RestoreMode, type Tournament, type Unit,
 } from '@muster/shared';
 import sample from '../../../packs/sample.json';
+import { AboutDialog } from './AboutDialog';
 import { BackupDialog } from './BackupDialog';
 import { saveTextFile } from './file';
 import { ExportDialog, ImportDialog, PackDialog } from './Dialogs';
@@ -21,6 +22,8 @@ import {
 } from './storage';
 import { SummaryPanel } from './SummaryPanel';
 import { UnitCard } from './UnitCard';
+import { UpdateBanner } from './UpdateBanner';
+import { useUpdates } from './useUpdates';
 import { UnitsView } from './UnitsView';
 
 function samplePack(): { index: PackIndex; custom: boolean } {
@@ -55,7 +58,10 @@ export function App() {
   const [selected, setSelected] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>('list');
   const [inspect, setInspect] = useState<Unit | null>(null);
-  const [dialog, setDialog] = useState<'import' | 'pack' | 'export' | 'backup' | null>(null);
+  const [dialog, setDialog] = useState<'import' | 'pack' | 'export' | 'backup' | 'about' | null>(null);
+  const updates = useUpdates();
+  // The desktop Help menu opens About.
+  useEffect(() => window.muster?.onMenu?.((action) => { if (action === 'about') setDialog('about'); }), []);
   const [lastBackup, setLastBackup] = useState<number | null>(loadLastBackup);
   const [copied, setCopied] = useState(false);
   const [saveFailed, setSaveFailed] = useState(false);
@@ -279,6 +285,7 @@ export function App() {
 
   return (
     <div className="app">
+      <UpdateBanner updates={updates} />
       <header className="topbar">
         <h1><span aria-hidden>★</span> Muster</h1>
         <nav className="views" aria-label="Views">
@@ -365,11 +372,13 @@ export function App() {
 
       <footer className="foot">
         Unofficial fan project. Not affiliated with or endorsed by Games Workshop or any rights holder. Muster ships no game data.
+        {' '}<button className="link" onClick={() => setDialog('about')}>About</button>
       </footer>
 
       {inspect && <UnitCard index={index} unit={inspect} onClose={() => setInspect(null)} onRule={openRule} />}
       {dialog === 'import' && <ImportDialog index={index} onImport={createList} onClose={() => setDialog(null)} />}
       {dialog === 'export' && <ExportDialog text={text()} onClose={() => setDialog(null)} />}
+      {dialog === 'about' && <AboutDialog updates={updates} onClose={() => setDialog(null)} />}
       {dialog === 'backup' && (
         <BackupDialog
           data={snapshot()} lastBackup={lastBackup} onClose={() => setDialog(null)}

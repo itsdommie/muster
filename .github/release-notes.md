@@ -13,6 +13,10 @@ An unofficial, local-first army list builder and table companion for tabletop sk
 
 `SHA256SUMS.txt` has a checksum for every file.
 
+## Updates
+
+The Windows installer and the Linux AppImage can update themselves, **but only if you allow it**: Muster asks once (and you can change it any time in About). Until you say yes, it makes no network requests at all. The `.deb` is updated by installing the new file, and the Android app by installing the new APK.
+
 ## Before you update
 
 Everything you make is kept on your own device. **Open Backup (top right) and save a file first.** You can restore it on any platform.

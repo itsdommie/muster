@@ -145,6 +145,8 @@ jobs:
             release/*.AppImage
             release/*.deb
             release/*.exe
+            release/latest*.yml
+            release/*.blockmap
           if-no-files-found: error
 
   # Pushing a tag such as v0.1.0 publishes a GitHub release with every installer. The tag must match the apps' version numbers.
@@ -175,6 +177,10 @@ jobs:
           ls -la artifacts
           mkdir out
           cp artifacts/Muster-Setup-"$VERSION".exe artifacts/Muster-"$VERSION"-x86_64.AppImage artifacts/Muster-"$VERSION"-amd64.deb out/
+          # What the desktop apps read to find a newer version (latest.yml for Windows, latest-linux.yml for the AppImage), and the block maps
+          # that let the Windows installer download only what changed. They must be on every release or updating silently stops working.
+          cp artifacts/latest.yml artifacts/latest-linux.yml out/
+          cp artifacts/*.blockmap out/ 2>/dev/null || true
           if [ -f artifacts/app-release.apk ]; then
             cp artifacts/app-release.apk "out/Muster-$VERSION-android.apk"
           else

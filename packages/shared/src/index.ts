@@ -12,3 +12,4 @@ export * from './backup.js';
 export * from './campaign.js';
 export * as packEdit from './packedit.js';
 export type { PackDraft } from './packedit.js';
+export type { UpdateInfo, UpdateState } from './updates.js';

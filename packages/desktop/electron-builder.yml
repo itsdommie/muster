@@ -2,6 +2,12 @@ appId: app.muster.desktop
 productName: Muster
 executableName: muster
 copyright: "Unofficial fan project. Contains no game data from any publisher."
+publish:
+  provider: github
+  owner: itsdommie
+  repo: muster
+  releaseType: release
+  updaterCacheDirName: muster-updater
 
 directories:
   output: ../../release

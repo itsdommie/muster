@@ -1,0 +1,6 @@
+# Used only when the app runs unpackaged (development and the update tests): electron-updater reads it where a packaged app has a generated
+# app-update.yml. It matches the publish settings in electron-builder.yml and is not shipped.
+provider: github
+owner: itsdommie
+repo: muster
+updaterCacheDirName: muster-updater

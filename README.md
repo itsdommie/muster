@@ -26,6 +26,10 @@ npm run validate-pack -- packs/sample.json
 | `packages/mobile` | Capacitor wrapper that builds the Android APK around the same UI. No permissions at all (it cannot touch the network); print and share go through two small native bridges. |
 | `packages/desktop` | Electron shell for Windows and Linux. Serves the built UI from a sandboxed `app://` protocol (no local server, no network), with a native Save-as-PDF. |
 
+### Updates
+
+The desktop apps (Windows installer and Linux AppImage) can update themselves, but only if you allow it: Muster asks once and otherwise makes no network requests at all. Change it any time in **About** (footer, or Help → About). The `.deb` is updated by installing the new file, and Android by installing the new APK. Updating needs `latest.yml` / `latest-linux.yml` (and block maps) on each release, which the release workflow attaches. To test the flow without GitHub, set `MUSTER_TEST_UPDATE_FEED` to a feed on this machine (anything else is ignored), as `e2e-desktop/updates.spec.ts` does.
+
 ### Releases
 
 Pushing a tag such as `v0.1.0` (it must match the version in `packages/desktop/package.json` and `packages/mobile/package.json`) makes CI build everything and publish a GitHub release with the Windows installer, the Linux AppImage and deb, the Android APK, and `SHA256SUMS.txt`. Releases below 1.0 are marked pre-release. The text is in `.github/release-notes.md`.

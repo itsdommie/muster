@@ -2,6 +2,12 @@
 
 Newest first. Each release's notes on GitHub include its section from here.
 
+## Unreleased
+
+- **Updates for the desktop apps, off until you allow it.** The Windows installer and the Linux AppImage can look for new versions on GitHub, download them when you choose, and install them when you close the app. Muster asks once; until you say yes it makes no network requests at all. Control it any time in **About** (the footer, or Help → About). Downloads are checked against the checksum in the release.
+- New **About** dialog: version, licence, links, and the update controls.
+- Releases now include the metadata the updater needs (`latest.yml`, `latest-linux.yml`, block maps). Versions before this one cannot update themselves: install this one by hand once.
+
 ## 0.2.0
 
 - **Campaigns.** Keep a company of named models from game to game: experience and level, fit/injured/dead, advancements, injuries and notes. Make a list from the company, play it in the game tracker, then record the result back (scores, who was hurt, experience), and undo it if needed. Progression rules come from the data pack.
