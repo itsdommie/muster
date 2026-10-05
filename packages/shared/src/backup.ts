@@ -4,6 +4,7 @@ import type { GameRecord } from './game.js';
 import type { ArmyList } from './list.js';
 import { loadPack } from './pack.js';
 import type { Tournament } from './tournament.js';
+import type { Campaign } from './campaign.js';
 
 // Everything a person has made lives on their device, so there is one file that holds all of it: lists, games, collections,
 // tournaments and (if they loaded one) their data pack. A backup file is read defensively: it may be old, hand-edited or damaged, and
@@ -17,6 +18,7 @@ export interface AppData {
   /** Keyed by data pack id. */
   collections: Record<string, Collection>;
   tournaments: Tournament[];
+  campaigns: Campaign[];
   /** The pack JSON the person loaded, if any (the bundled sample pack is not backed up). */
   customPack: unknown | null;
 }
@@ -29,13 +31,13 @@ export interface Backup {
 }
 
 const num = z.number().finite();
-const entry = z.object({ unit: z.string(), options: z.array(z.string()), count: z.number().int().min(1) });
+const entry = z.object({ unit: z.string(), options: z.array(z.string()), count: z.number().int().min(1), members: z.array(z.string()).optional() });
 const warband = z.object({ id: z.string(), army: z.string(), leader: entry.nullable(), members: z.array(entry) });
-const listSchema = z.object({ id: z.string(), name: z.string(), army: z.string(), limit: num, warbands: z.array(warband), updated: num, pack: z.string() });
+const listSchema = z.object({ id: z.string(), name: z.string(), army: z.string(), limit: num, warbands: z.array(warband), updated: num, pack: z.string(), campaign: z.string().optional() });
 
 const counter = z.object({ cur: num, max: num });
 const model = z.object({
-  id: z.string(), warband: num, unit: z.string(), label: z.string(), detail: z.array(z.string()), leader: z.boolean(), ranged: z.boolean(),
+  id: z.string(), warband: num, unit: z.string(), label: z.string(), detail: z.array(z.string()), leader: z.boolean(), ranged: z.boolean(), member: z.string().optional(),
   wounds: counter, might: counter.optional(), will: counter.optional(), fate: counter.optional(),
 });
 const side = z.enum(['me', 'opponent']);
@@ -52,6 +54,7 @@ const event = z.discriminatedUnion('t', [
 const gameSchema = z.object({
   id: z.string(), name: z.string(), pack: z.string(), listName: z.string(), opponent: z.string(),
   scenario: z.object({ id: z.string(), name: z.string(), setup: z.string(), objectives: z.string(), victory: z.string(), special: z.string().optional() }).optional(),
+  campaign: z.string().optional(), campaignRecorded: z.boolean().optional(),
   startedAt: num, finishedAt: num.nullable(), notes: z.string(),
   start: z.object({ models: z.array(model), breakFraction: num, opponentStart: num }),
   events: z.array(event), undone: z.array(event),
@@ -66,6 +69,20 @@ const tournamentSchema = z.object({
   finished: z.boolean(),
 });
 
+const memberStatus = z.enum(['active', 'injured', 'dead']);
+const memberState = z.object({ status: memberStatus, xp: num, games: num });
+const campaignSchema = z.object({
+  id: z.string(), name: z.string(), pack: z.string(), army: z.string(), created: num, updated: num, pointsLimit: num.nullable(), notes: z.string(),
+  members: z.array(z.object({
+    id: z.string(), unit: z.string(), options: z.array(z.string()), name: z.string(), status: memberStatus, xp: num, games: num,
+    advancements: z.array(z.string()), injuries: z.array(z.string()), notes: z.string(),
+  })),
+  log: z.array(z.object({
+    id: z.string(), at: num, opponent: z.string(), scenario: z.string(), vpMe: num, vpOpp: num, outcome: z.enum(['win', 'draw', 'loss']), notes: z.string(),
+    changes: z.array(z.object({ member: z.string(), name: z.string(), before: memberState, after: memberState })),
+  })),
+});
+
 export function createBackup(data: AppData, now = Date.now()): Backup {
   return { app: 'muster', format: BACKUP_FORMAT, exportedAt: now, data };
 }
@@ -76,6 +93,7 @@ export interface Skipped {
   lists: number;
   games: number;
   tournaments: number;
+  campaigns: number;
   collections: number;
   customPack: boolean;
 }
@@ -119,6 +137,7 @@ export function parseBackup(text: string): ParsedBackup {
   const lists = keep(d.lists, listSchema);
   const games = keep(d.games, gameSchema);
   const tournaments = keep(d.tournaments, tournamentSchema);
+  const campaigns = keep(d.campaigns, campaignSchema);
 
   const collections: Record<string, Collection> = {};
   let badCollections = 0;
@@ -141,13 +160,13 @@ export function parseBackup(text: string): ParsedBackup {
     ok: true,
     backup: {
       app: 'muster', format: b.format, exportedAt: typeof b.exportedAt === 'number' ? b.exportedAt : 0,
-      data: { lists: lists.items as ArmyList[], games: games.items as GameRecord[], collections, tournaments: tournaments.items as Tournament[], customPack },
+      data: { lists: lists.items as ArmyList[], games: games.items as GameRecord[], collections, tournaments: tournaments.items as Tournament[], campaigns: campaigns.items as Campaign[], customPack },
     },
-    skipped: { lists: lists.skipped, games: games.skipped, tournaments: tournaments.skipped, collections: badCollections, customPack: badPack },
+    skipped: { lists: lists.skipped, games: games.skipped, tournaments: tournaments.skipped, campaigns: campaigns.skipped, collections: badCollections, customPack: badPack },
   };
 }
 
-export const countSkipped = (s: Skipped): number => s.lists + s.games + s.tournaments + s.collections + (s.customPack ? 1 : 0);
+export const countSkipped = (s: Skipped): number => s.lists + s.games + s.tournaments + s.campaigns + s.collections + (s.customPack ? 1 : 0);
 
 // --- Restoring ---
 
@@ -194,6 +213,7 @@ export function restore(current: AppData, incoming: AppData, mode: RestoreMode):
     games: settleGames(mergeById(current.games, incoming.games, (a, b) => gameProgress(b) > gameProgress(a))),
     collections,
     tournaments: mergeById(current.tournaments, incoming.tournaments, (a, b) => tournamentProgress(b) > tournamentProgress(a)),
+    campaigns: mergeById(current.campaigns, incoming.campaigns, (a, b) => b.updated > a.updated),
     customPack: current.customPack ?? incoming.customPack,
   };
 }
@@ -202,6 +222,7 @@ export interface Counts {
   lists: number;
   games: number;
   tournaments: number;
+  campaigns: number;
   models: number;
 }
 
@@ -209,5 +230,6 @@ export const countData = (d: AppData): Counts => ({
   lists: d.lists.length,
   games: d.games.length,
   tournaments: d.tournaments.length,
+  campaigns: d.campaigns.length,
   models: Object.values(d.collections).reduce((n, c) => n + Object.values(c).reduce((m, e) => m + e.unbuilt + e.built + e.primed + e.painted, 0), 0),
 });

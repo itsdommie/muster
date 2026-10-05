@@ -72,5 +72,17 @@ export function loadPack(json: unknown): PackResult {
     }
   }
 
+  const camp = pack.ruleset.campaign;
+  if (camp) {
+    for (const d of duplicates(camp.advancements.map((a) => a.id))) errors.push(`duplicate advancement id "${d}"`);
+    for (const d of duplicates(camp.injuries.map((i) => i.id))) errors.push(`duplicate injury id "${d}"`);
+    const ats = camp.levels.map((l) => l.at);
+    if (camp.levels.length > 0 && ats[0] !== 0) errors.push('campaign levels must start at 0 experience');
+    if (ats.some((a, i) => i > 0 && a <= ats[i - 1]!)) errors.push('campaign levels must be in increasing order of experience');
+    for (const a of camp.advancements) {
+      if (a.minLevel >= Math.max(1, camp.levels.length)) errors.push(`advancement "${a.id}" needs level ${a.minLevel}, which does not exist`);
+    }
+  }
+
   return errors.length > 0 ? { ok: false, errors } : { ok: true, index: { pack, units, wargear, rules, armies, scenarios: new Map(pack.scenarios.map((x) => [x.id, x])) } };
 }

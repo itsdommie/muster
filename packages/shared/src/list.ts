@@ -6,6 +6,8 @@ export interface ListEntry {
   unit: string;
   options: string[];
   count: number;
+  /** Campaign roster members these models are, in order. Only lists made from a campaign company have it. */
+  members?: string[];
 }
 
 export interface Warband {
@@ -25,6 +27,8 @@ export interface ArmyList {
   updated: number;
   /** Id of the data pack this list was built with; unit and army ids only mean something within it. */
   pack: string;
+  /** Set on a list made from a campaign company: the campaign it belongs to. */
+  campaign?: string;
 }
 
 /** Where an entry lives inside a warband. */

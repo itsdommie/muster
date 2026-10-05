@@ -26,6 +26,8 @@ export interface GameModel {
   leader: boolean;
   /** Carries a bow or throwing weapon. */
   ranged: boolean;
+  /** The campaign roster member this model is, when the game was played from a campaign company. */
+  member?: string;
   wounds: Counter;
   /** Heroes only. */
   might?: Counter;
@@ -72,6 +74,9 @@ export interface GameRecord {
   opponent: string;
   /** Absent in games saved before scenarios existed. */
   scenario?: ScenarioSnapshot;
+  /** The campaign this game was played for (from a company list), and whether its result has been written into that campaign. */
+  campaign?: string;
+  campaignRecorded?: boolean;
   startedAt: number;
   finishedAt: number | null;
   notes: string;
@@ -131,6 +136,7 @@ export function startGame(index: PackIndex, list: ArmyList, opts: { opponent?: s
           detail,
           leader,
           ranged,
+          ...(e.members?.[i] ? { member: e.members[i] } : {}),
           wounds: counter(unit.stats.wounds),
         };
         if (unit.kind === 'hero') {
@@ -150,6 +156,7 @@ export function startGame(index: PackIndex, list: ArmyList, opts: { opponent?: s
     listName: list.name,
     opponent: opts.opponent?.trim() ?? '',
     ...(opts.scenario ? { scenario: snapshotScenario(opts.scenario) } : {}),
+    ...(list.campaign ? { campaign: list.campaign } : {}),
     startedAt: Date.now(),
     finishedAt: null,
     notes: '',
@@ -268,6 +275,9 @@ export function redo(record: GameRecord): GameRecord {
   if (!next) return record;
   return { ...record, events: [...record.events, next], undone: record.undone.slice(0, -1) };
 }
+
+/** Note that a finished game's result has been written into its campaign, so it is not offered again. */
+export const markRecorded = (record: GameRecord): GameRecord => ({ ...record, campaignRecorded: true });
 
 export const finishGame = (record: GameRecord, at = Date.now()): GameRecord => ({ ...record, finishedAt: at });
 

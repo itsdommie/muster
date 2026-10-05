@@ -64,7 +64,7 @@ async function wipe(page: Page) {
 test('saves one file holding everything, and notes when', async ({ page }) => {
   await makeData(page);
   await openBackup(page);
-  await expect(dialog(page)).toContainText('1 list, 0 games, 1 tournament, 3 models in your collection');
+  await expect(dialog(page)).toContainText('1 list, 0 games, 1 tournament, 0 campaigns, 3 models in your collection');
   await expect(dialog(page)).toContainText('You have not saved a backup yet.');
   await closeBackup(page);
 
@@ -98,7 +98,7 @@ test('restoring on a wiped device brings everything back', async ({ page }) => {
   await openBackup(page);
   await choose(page, path);
   const preview = dialog(page).getByLabel('Backup contents');
-  await expect(preview).toContainText('1 list, 0 games, 1 tournament, 3 models');
+  await expect(preview).toContainText('1 list, 0 games, 1 tournament, 0 campaigns, 3 models');
   await expect(preview.getByRole('radio', { name: /Add to what is here/ })).toBeChecked();
   await preview.getByRole('button', { name: 'Restore' }).click();
   await expect(dialog(page).getByRole('status')).toContainText('Restored. This device now has 2 lists');
@@ -241,7 +241,7 @@ test('a damaged backup restores what is good and says what it left out', async (
   await openBackup(page);
   await choose(page, path);
   const preview = dialog(page).getByLabel('Backup contents');
-  await expect(preview).toContainText('1 list, 0 games, 1 tournament');
+  await expect(preview).toContainText('1 list, 0 games, 1 tournament, 0 campaigns');
   await expect(preview.getByRole('status')).toContainText('will be left out: 1 list, 1 tournament');
   await preview.getByRole('button', { name: 'Restore' }).click();
   await expect(dialog(page).getByRole('status')).toContainText('Restored.');

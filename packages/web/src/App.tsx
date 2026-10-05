@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  addUnit, addWarband, countData, exportText, loadPack, newId, newList, restore, validateList,
-  type AppData, type ArmyList, type Backup, type Collection, type GameRecord, type PackIndex, type RestoreMode, type Tournament, type Unit,
+  addUnit, addWarband, companyToList, countData, exportText, loadPack, markRecorded, newId, newList, restore, validateList,
+  type AppData, type ArmyList, type Backup, type Campaign, type Collection, type GameRecord, type PackIndex, type RestoreMode, type Tournament, type Unit,
 } from '@muster/shared';
 import sample from '../../../packs/sample.json';
 import { BackupDialog } from './BackupDialog';
@@ -16,8 +16,8 @@ import { RulesView } from './RulesView';
 import { MoreView, moreSection, type MoreSection } from './MoreView';
 import { useRoute, type View } from './route';
 import {
-  clearCustomPack, loadCollections, loadCurrent, loadCustomPack, loadGames, loadLastBackup, loadLists, loadTournaments, saveCollections, saveCurrent, saveCustomPack, saveGames,
-  saveLastBackup, saveLists, saveTournaments,
+  clearCustomPack, loadCampaigns, loadCollections, loadCurrent, loadCustomPack, loadGames, loadLastBackup, loadLists, loadTournaments, saveCollections, saveCurrent, saveCustomPack, saveGames,
+  saveCampaigns, saveLastBackup, saveLists, saveTournaments,
 } from './storage';
 import { SummaryPanel } from './SummaryPanel';
 import { UnitCard } from './UnitCard';
@@ -65,6 +65,8 @@ export function App() {
   const setView = (v: View) => go(v);
   const [collections, setCollections] = useState<Record<string, Collection>>(loadCollections);
   const [tournaments, setTournaments] = useState<Tournament[]>(loadTournaments);
+  const [campaigns, setCampaigns] = useState<Campaign[]>(loadCampaigns);
+  const [recordGameId, setRecordGameId] = useState<string | null>(null);
   const [gameScenario, setGameScenario] = useState<string | null>(null);
   const [lastMoreSub, setLastMoreSub] = useState<string | null>(null);
   useEffect(() => { if (view === 'more' && sub) setLastMoreSub(sub); }, [view, sub]);
@@ -77,8 +79,8 @@ export function App() {
   const validation = useMemo(() => validateList(index, list), [index, list]);
 
   useEffect(() => {
-    setSaveFailed(!(saveLists(lists) && saveCurrent(currentId) && saveGames(games) && saveCollections(collections) && saveTournaments(tournaments)));
-  }, [lists, currentId, games, collections, tournaments]);
+    setSaveFailed(!(saveLists(lists) && saveCurrent(currentId) && saveGames(games) && saveCollections(collections) && saveTournaments(tournaments) && saveCampaigns(campaigns)));
+  }, [lists, currentId, games, collections, tournaments, campaigns]);
 
   const change = useCallback(
     (fn: (l: ArmyList) => ArmyList) => setLists((all) => all.map((l) => (l.id === currentId ? fn(l) : l))),
@@ -136,8 +138,8 @@ export function App() {
     else setView(v);
   };
   // --- Backup and restore ---
-  const snapshot = (): AppData => ({ lists, games, collections, tournaments, customPack: loadCustomPack() ?? null });
-  const hasData = games.length > 0 || tournaments.length > 0 || lists.some((l) => l.warbands.length > 0) || countData(snapshot()).models > 0;
+  const snapshot = (): AppData => ({ lists, games, collections, tournaments, campaigns, customPack: loadCustomPack() ?? null });
+  const hasData = games.length > 0 || tournaments.length > 0 || campaigns.length > 0 || lists.some((l) => l.warbands.length > 0) || countData(snapshot()).models > 0;
   const backupDue = hasData && (lastBackup === null || Date.now() - lastBackup > 30 * 24 * 3600 * 1000);
 
   /** Apply a backup to this device, and say what happened. */
@@ -170,13 +172,39 @@ export function App() {
     setGames(merged.games);
     setCollections(merged.collections);
     setTournaments(merged.tournaments);
+    setCampaigns(merged.campaigns);
     setCurrentId(active.id);
     if (nextPack.index !== index) setPack(nextPack);
     setSelected(null);
     setUnitSelected(null);
     setFocusRule(null);
     const c = countData(merged);
-    return `Restored. This device now has ${c.lists} list${c.lists === 1 ? '' : 's'}, ${c.games} game${c.games === 1 ? '' : 's'}, ${c.tournaments} tournament${c.tournaments === 1 ? '' : 's'} and ${c.models} model${c.models === 1 ? '' : 's'} in the collection.${note}`;
+    return `Restored. This device now has ${c.lists} list${c.lists === 1 ? '' : 's'}, ${c.games} game${c.games === 1 ? '' : 's'}, ${c.tournaments} tournament${c.tournaments === 1 ? '' : 's'}, ${c.campaigns} campaign${c.campaigns === 1 ? '' : 's'} and ${c.models} model${c.models === 1 ? '' : 's'} in the collection.${note}`;
+  };
+
+  // --- Campaigns ---
+  const myCampaigns = campaigns.filter((c) => c.pack === index.pack.id);
+  const campaignNames = Object.fromEntries(campaigns.map((c) => [c.id, c.name]));
+  const waitingGames = games.filter((g) => g.campaign && g.finishedAt && !g.campaignRecorded);
+
+  /** Turn a company into a list. A company has one list that is refreshed each time, so the list menu does not fill up with copies. */
+  const makeCompanyList = (c: Campaign, includeInjured: boolean) => {
+    const { list: fresh, notes } = companyToList(index, c, { includeInjured });
+    const existing = lists.find((l) => l.campaign === c.id && l.pack === index.pack.id);
+    const made: ArmyList = existing ? { ...fresh, id: existing.id, name: existing.name } : fresh;
+    setLists((all) => (existing ? all.map((l) => (l.id === existing.id ? made : l)) : [...all, made]));
+    setCurrentId(made.id);
+    setSelected(null);
+    const models = made.warbands.reduce((n, w) => n + (w.leader ? 1 : 0) + w.members.reduce((m, e) => m + e.count, 0), 0);
+    // A company grows by its own rules and may not fit the usual list-building limits (bows, warband sizes…). Say so, and let them decide.
+    const check = validateList(index, made);
+    const problems = check.issues.filter((i) => i.severity === 'error').map((i) => i.message);
+    const extra = problems.length > 0 ? [`Under the usual list-building rules this has ${problems.length} problem${problems.length === 1 ? '' : 's'}: ${problems.join(' ')}`] : [];
+    return { name: made.name, models, points: check.summary.points, notes: [...notes, ...extra] };
+  };
+  const recordInCampaign = (gameId: string) => {
+    setRecordGameId(gameId);
+    go('more', 'campaign');
   };
 
   const collection = collections[index.pack.id] ?? {};
@@ -298,7 +326,7 @@ export function App() {
 
       <div className="view" hidden={view !== 'game'}>
         <GameView
-          index={index} lists={mine} games={games} onGames={setGames} scenarioId={gameScenario}
+          index={index} lists={mine} games={games} onGames={setGames} scenarioId={gameScenario} campaignNames={campaignNames} onRecordInCampaign={recordInCampaign}
           onInspect={(unitId) => { const u = index.units.get(unitId); if (u) setInspect(u); }}
         />
       </div>
@@ -308,6 +336,15 @@ export function App() {
           index={index} section={moreSection(sub)} onSection={(s: MoreSection) => go('more', s)}
           collection={collection} onCollection={editCollection} lists={mine} currentListId={list.id}
           tournaments={tournaments} onTournaments={setTournaments} onPlayScenario={playScenario}
+          campaigns={myCampaigns}
+          onCampaigns={(fn) => setCampaigns((all) => {
+            // The view edits only this pack's campaigns; keep everyone else's untouched.
+            const mine = fn(all.filter((c) => c.pack === index.pack.id));
+            return [...all.filter((c) => c.pack !== index.pack.id), ...mine];
+          })}
+          waitingGames={waitingGames} onGameRecorded={(id) => setGames((all) => all.map((g) => (g.id === id ? markRecorded(g) : g)))}
+          onMakeCompanyList={makeCompanyList} onOpenBuilder={() => go('builder')}
+          recordGameId={recordGameId} onRecordHandled={() => setRecordGameId(null)}
         />
       </div>
 

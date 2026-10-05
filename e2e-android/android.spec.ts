@@ -311,6 +311,36 @@ test('a backup is offered to the share sheet as a real file, and the file picker
   await backToApp();
 });
 
+test('a campaign can be run on the phone: roster, list and recording a game', async () => {
+  const page = await launch();
+  await views(page).getByRole('button', { name: 'More' }).click();
+  await page.getByRole('navigation', { name: 'More sections' }).getByRole('button', { name: 'Campaign' }).click();
+  await page.getByLabel('Name', { exact: true }).fill('Phone watch');
+  await page.getByRole('button', { name: 'Create campaign' }).click();
+  const roster = page.getByRole('region', { name: 'Roster' });
+  for (const [label, name] of [[/^Aldric/, 'Aldric'], [/^Vale Spearman/, 'Tam']] as const) {
+    const options = await roster.getByLabel('Unit to add').locator('option').allTextContents();
+    await roster.getByLabel('Unit to add').selectOption({ label: options.find((t) => label.test(t))! });
+    await roster.getByLabel('Name for the new model').fill(name);
+    await roster.getByRole('button', { name: 'Add to the company' }).click();
+  }
+  await page.getByRole('button', { name: 'Make a list from this company' }).click();
+  await expect(page.getByRole('region', { name: 'Company' }).getByRole('status')).toContainText('is ready: 2 models');
+
+  await page.getByRole('button', { name: 'Record a game' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Record a game' });
+  await dialog.getByLabel('Your victory points').fill('3');
+  // The whole table is on screen on a phone, including the last column.
+  const box = (await dialog.boundingBox())!;
+  const xp = (await dialog.getByLabel('Aldric experience').boundingBox())!;
+  expect(xp.x + xp.width).toBeLessThanOrEqual(box.x + box.width);
+  await dialog.getByLabel('Tam condition').selectOption('dead');
+  await dialog.getByRole('button', { name: /^Record the game/ }).click();
+  await expect(page.getByRole('region', { name: 'Company' })).toContainText('1W 0D 0L');
+  await expect(page.getByRole('group', { name: 'Experience of Aldric' })).toContainText('2');
+  await expect(page.getByRole('region', { name: 'Roster' }).locator('.fallen')).toContainText('Fallen (1)');
+});
+
 test('the screen is laid out for the phone: no sideways scroll, big touch targets', async () => {
   const page = await launch();
   expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);

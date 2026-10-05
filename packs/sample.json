@@ -30,6 +30,74 @@
       "might": {
         "duelBonus": 1
       }
+    },
+    "campaign": {
+      "levels": [
+        {
+          "at": 0,
+          "name": "Recruit"
+        },
+        {
+          "at": 4,
+          "name": "Veteran"
+        },
+        {
+          "at": 10,
+          "name": "Champion"
+        },
+        {
+          "at": 20,
+          "name": "Legend"
+        }
+      ],
+      "xp": {
+        "play": 1,
+        "win": 1,
+        "draw": 0
+      },
+      "advancements": [
+        {
+          "id": "sharp-eyed",
+          "name": "Sharp-eyed",
+          "text": "+1 to hit when shooting.",
+          "minLevel": 1
+        },
+        {
+          "id": "iron-will",
+          "name": "Iron Will",
+          "text": "May re-roll a failed Courage test once per game.",
+          "minLevel": 1
+        },
+        {
+          "id": "deadly",
+          "name": "Deadly",
+          "text": "+1 Attack.",
+          "minLevel": 2
+        },
+        {
+          "id": "tough",
+          "name": "Tough",
+          "text": "+1 Wound.",
+          "minLevel": 3
+        }
+      ],
+      "injuries": [
+        {
+          "id": "limp",
+          "name": "Limp",
+          "text": "-1\" Move."
+        },
+        {
+          "id": "scarred",
+          "name": "Scarred",
+          "text": "-1 Courage."
+        },
+        {
+          "id": "shaken",
+          "name": "Shaken",
+          "text": "Misses the next game."
+        }
+      ]
     }
   },
   "wargear": [

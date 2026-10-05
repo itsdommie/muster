@@ -5,6 +5,7 @@ import { clone, sample, sampleIndex } from './fixtures.js';
 import { dispatch, startGame } from './game.js';
 import { addUnit, addWarband, newList, type ArmyList } from './list.js';
 import { newTournament, setResult, startRound } from './tournament.js';
+import { addMember, companyToList, newCampaign, recordGame, setMemberStatus } from './campaign.js';
 
 const idx = sampleIndex();
 
@@ -23,11 +24,17 @@ function data(): AppData {
   const r = startRound(t);
   if (!r.ok) throw new Error(r.reason);
   t = setResult(r.tournament, 1, 1, 5, 2);
+  // A campaign company, a list made from it, and a game played from that list (so the member links must survive).
+  let camp = addMember(idx, addMember(idx, newCampaign(idx, 'Vale Watch', 'vale-realm'), 'aldric-the-bold', 'Aldric'), 'vale-spearman', 'Spear');
+  const company = companyToList(idx, camp).list;
+  const played = startGame(idx, company);
+  camp = recordGame(camp, { opponent: 'Dave', scenario: 'Ford', vpMe: 3, vpOpp: 1, notes: '', results: camp.members.map((m) => ({ member: m.id, played: true, status: 'active' as const, xp: 2 })) });
   return {
-    lists: [list],
-    games: [game],
+    lists: [list, company],
+    games: [game, { ...played, finishedAt: 5, campaignRecorded: true }],
     collections: { sample: setAmount(setAmount({}, 'vale-spearman', 'painted', 3), 'vale-archer', 'wanted', 2) },
     tournaments: [t],
+    campaigns: [camp],
     customPack: null,
   };
 }
@@ -55,7 +62,32 @@ describe('backup file', () => {
     const p = parseBackup(JSON.stringify(bad));
     expect(p.ok && p.backup.data.customPack).toBeNull();
     expect(p.ok && p.skipped.customPack).toBe(true);
-    expect(p.ok && p.backup.data.lists).toHaveLength(1);
+    expect(p.ok && p.backup.data.lists).toHaveLength(2);
+  });
+
+  it('keeps every campaign link through a round trip (they are easy to lose, because unknown fields are dropped)', () => {
+    const d = data();
+    const p = roundTrip(d);
+    const company = p.backup.data.lists.find((l) => l.campaign)!;
+    expect(company.campaign).toBe(d.campaigns[0]!.id);
+    expect(company.warbands[0]!.leader!.members).toEqual([d.campaigns[0]!.members[0]!.id]);
+    const game = p.backup.data.games.find((g) => g.campaign)!;
+    expect(game).toMatchObject({ campaign: d.campaigns[0]!.id, campaignRecorded: true });
+    expect(game.start.models.map((m) => m.member)).toEqual(d.campaigns[0]!.members.map((m) => m.id));
+    expect(p.backup.data.campaigns[0]!.log[0]!.changes).toHaveLength(2);
+    expect(p.backup.data.campaigns).toEqual(d.campaigns);
+  });
+
+  it('skips a damaged campaign and reads a backup from before campaigns existed', () => {
+    const b = JSON.parse(JSON.stringify(createBackup(data())));
+    b.data.campaigns.push({ id: 'half', name: 'Half' });
+    const p = parseBackup(JSON.stringify(b));
+    expect(p.ok && p.backup.data.campaigns).toHaveLength(1);
+    expect(p.ok && p.skipped.campaigns).toBe(1);
+    delete b.data.campaigns;
+    const old = parseBackup(JSON.stringify(b));
+    expect(old.ok && old.backup.data.campaigns).toEqual([]);
+    expect(old.ok && old.skipped.campaigns).toBe(0);
   });
 
   it('names the file by date', () => {
@@ -77,7 +109,7 @@ describe('backup file', () => {
 
   it('accepts an empty backup', () => {
     const p = parseBackup(`{"app":"muster","format":${BACKUP_FORMAT},"data":{}}`);
-    expect(p.ok && countData(p.backup.data)).toEqual({ lists: 0, games: 0, tournaments: 0, models: 0 });
+    expect(p.ok && countData(p.backup.data)).toEqual({ lists: 0, games: 0, tournaments: 0, campaigns: 0, models: 0 });
   });
 
   it('skips damaged items, counts them, and keeps the good ones', () => {
@@ -89,9 +121,9 @@ describe('backup file', () => {
     b.data.collections.bad = 'nope';
     const p = parseBackup(JSON.stringify(b));
     if (!p.ok) throw new Error(p.error);
-    expect(p.backup.data.lists).toHaveLength(1);
+    expect(p.backup.data.lists).toHaveLength(2);
     expect(p.skipped).toMatchObject({ lists: 4, games: 1, tournaments: 1, collections: 1 });
-    expect(p.backup.data.games).toHaveLength(0); // the game's event list was damaged, so the whole game is left out
+    expect(p.backup.data.games).toHaveLength(1); // one game's event list was damaged, so that whole game is left out
     expect(p.backup.data.tournaments).toHaveLength(1);
     expect(countSkipped(p.skipped)).toBe(7);
   });
@@ -100,7 +132,7 @@ describe('backup file', () => {
     const b = JSON.parse(JSON.stringify(createBackup(data())));
     b.data.lists.push(clone(b.data.lists[0]));
     const p = parseBackup(JSON.stringify(b));
-    expect(p.ok && p.backup.data.lists).toHaveLength(1);
+    expect(p.ok && p.backup.data.lists).toHaveLength(2);
     expect(p.ok && p.skipped.lists).toBe(1);
   });
 
@@ -133,7 +165,7 @@ describe('backup file', () => {
 });
 
 describe('restoring', () => {
-  const emptyData = (): AppData => ({ lists: [], games: [], collections: {}, tournaments: [], customPack: null });
+  const emptyData = (): AppData => ({ lists: [], games: [], collections: {}, tournaments: [], campaigns: [], customPack: null });
 
   it('replace makes the device exactly the backup', () => {
     const d = data();
@@ -152,10 +184,11 @@ describe('restoring', () => {
     const device = data();
     const incoming: AppData = { ...emptyData(), lists: [aList('From backup', 5)], collections: { other: setAmount({}, 'chief', 'built', 1) } };
     const out = restore(device, incoming, 'merge');
-    expect(out.lists.map((l) => l.name).sort()).toEqual(['From backup', 'Vanguard']);
+    expect(out.lists.map((l) => l.name).sort()).toEqual(['From backup', 'Vale Watch company', 'Vanguard']);
     expect(Object.keys(out.collections).sort()).toEqual(['other', 'sample']);
-    expect(out.games).toHaveLength(1);
+    expect(out.games).toHaveLength(2);
     expect(out.tournaments).toHaveLength(1);
+    expect(out.campaigns).toHaveLength(1);
   });
 
   it('merge prefers the more recently edited list, the device on a tie', () => {
@@ -176,6 +209,16 @@ describe('restoring', () => {
     expect(restore({ ...device, games: [further] }, { ...emptyData(), games: [g] }, 'merge').games[0]!.events).toHaveLength(g.events.length + 1);
     const finished = { ...g, finishedAt: 5 };
     expect(restore({ ...device, games: [further] }, { ...emptyData(), games: [finished] }, 'merge').games[0]!.finishedAt).toBe(5);
+  });
+
+  it('merge keeps the more recently changed campaign', () => {
+    const device = data();
+    const c = device.campaigns[0]!;
+    const newer = { ...c, name: 'Newer', updated: c.updated + 10 };
+    const older = { ...c, name: 'Older', updated: c.updated - 10 };
+    expect(restore(device, { ...emptyData(), campaigns: [newer] }, 'merge').campaigns[0]!.name).toBe('Newer');
+    expect(restore(device, { ...emptyData(), campaigns: [older] }, 'merge').campaigns[0]!.name).toBe('Vale Watch');
+    expect(restore(emptyData(), { ...emptyData(), campaigns: [c] }, 'merge').campaigns).toEqual([c]);
   });
 
   it('merge keeps the tournament with more progress', () => {
@@ -208,7 +251,7 @@ describe('restoring', () => {
 });
 
 describe('one game at a time', () => {
-  const emptyData = (): AppData => ({ lists: [], games: [], collections: {}, tournaments: [], customPack: null });
+  const emptyData = (): AppData => ({ lists: [], games: [], collections: {}, tournaments: [], campaigns: [], customPack: null });
   const twoGames = () => {
     const d = data();
     const a = d.games[0]!; // 2 events, unfinished
@@ -242,6 +285,6 @@ describe('one game at a time', () => {
 
 describe('counts', () => {
   it('summarises a backup for the confirmation screen', () => {
-    expect(countData(data())).toEqual({ lists: 1, games: 1, tournaments: 1, models: 3 });
+    expect(countData(data())).toEqual({ lists: 2, games: 2, tournaments: 1, campaigns: 1, models: 3 });
   });
 });

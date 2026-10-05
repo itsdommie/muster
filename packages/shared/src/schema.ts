@@ -124,6 +124,19 @@ export const scenarioSchema = z.object({
   tags: z.array(z.string().min(1)).default([]),
 });
 
+/**
+ * How a company of models grows over a campaign. Optional: without it campaigns still track a roster, experience, status and notes,
+ * just with no levels, automatic awards or lists to pick advancements and injuries from.
+ */
+export const campaignRulesSchema = z.object({
+  /** Experience thresholds: a model is at the highest level whose `at` it has reached. */
+  levels: z.array(z.object({ at: z.number().int().min(0), name: z.string().min(1) })).default([]),
+  /** Experience awarded automatically for a game: for taking part, plus extra for the outcome. */
+  xp: z.object({ play: z.number().int().min(0).default(0), win: z.number().int().min(0).default(0), draw: z.number().int().min(0).default(0) }).default({ play: 0, win: 0, draw: 0 }),
+  advancements: z.array(z.object({ id, name: z.string().min(1), text: z.string().default(''), minLevel: z.number().int().min(0).default(0) })).default([]),
+  injuries: z.array(z.object({ id, name: z.string().min(1), text: z.string().default('') })).default([]),
+});
+
 export const rulesetSchema = z.object({
   /** Default maximum number of warriors led by one hero. */
   warbandSize: z.number().int().min(0),
@@ -134,6 +147,7 @@ export const rulesetSchema = z.object({
   /** Per ally level: maximum percentage of the points limit allowed in allies, or null for no cap. */
   allyLimits: z.record(z.string(), z.number().min(0).max(100).nullable()).default({}),
   combat: combatSchema.optional(),
+  campaign: campaignRulesSchema.optional(),
 });
 
 export const packSchema = z.object({
@@ -161,4 +175,5 @@ export type Army = z.infer<typeof armySchema>;
 export type Scenario = z.infer<typeof scenarioSchema>;
 export type Ruleset = z.infer<typeof rulesetSchema>;
 export type Combat = z.infer<typeof combatSchema>;
+export type CampaignRules = z.infer<typeof campaignRulesSchema>;
 export type Pack = z.infer<typeof packSchema>;

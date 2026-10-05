@@ -187,6 +187,38 @@ test('a backup saves as a real file and restores into a brand-new profile', asyn
   await app.close();
 });
 
+test('a campaign company is kept across a restart and makes a list', async () => {
+  const userData = mkdtempSync(join(tmpdir(), 'muster-data-'));
+  let app = await launch(userData);
+  let page = await app.firstWindow();
+  await page.getByRole('navigation', { name: 'Views' }).getByRole('button', { name: 'More' }).click();
+  await page.getByRole('navigation', { name: 'More sections' }).getByRole('button', { name: 'Campaign' }).click();
+  await page.getByLabel('Name', { exact: true }).fill('Desktop watch');
+  await page.getByRole('button', { name: 'Create campaign' }).click();
+  const roster = page.getByRole('region', { name: 'Roster' });
+  const add = async (label: RegExp, name: string) => {
+    const options = await roster.getByLabel('Unit to add').locator('option').allTextContents();
+    await roster.getByLabel('Unit to add').selectOption({ label: options.find((t) => label.test(t))! });
+    await roster.getByLabel('Name for the new model').fill(name);
+    await roster.getByRole('button', { name: 'Add to the company' }).click();
+  };
+  await add(/^Aldric/, 'Aldric');
+  await add(/^Vale Spearman/, 'Tam');
+  for (let i = 0; i < 4; i++) await page.getByRole('button', { name: 'Experience of Aldric up' }).click();
+  await app.close();
+
+  app = await launch(userData);
+  page = await app.firstWindow();
+  await page.getByRole('navigation', { name: 'Views' }).getByRole('button', { name: 'More' }).click();
+  await page.getByRole('navigation', { name: 'More sections' }).getByRole('button', { name: 'Campaign' }).click();
+  await expect(page.getByLabel('Campaign name')).toHaveValue('Desktop watch');
+  await expect(page.getByRole('group', { name: 'Experience of Aldric' })).toContainText('4');
+  await expect(page.getByRole('region', { name: 'Roster' })).toContainText('Veteran');
+  await page.getByRole('button', { name: 'Make a list from this company' }).click();
+  await expect(page.getByRole('region', { name: 'Company' }).getByRole('status')).toContainText('Desktop watch company is ready: 2 models, 98 points.');
+  await app.close();
+});
+
 test('a game in progress resumes after the app is closed and reopened', async () => {
   const userData = mkdtempSync(join(tmpdir(), 'muster-data-'));
   let app = await launch(userData);

@@ -65,6 +65,26 @@ A list of scenarios to browse and attach to a game. Without it the Scenarios tab
 
 `id` and `name` are required; everything else is optional free text (`players` is text, e.g. `"2-4"`). Starting a game with a scenario copies its text into the game, so a later pack update does not change a game under way.
 
+## `ruleset.campaign` (optional)
+
+Rules for a company that grows over a campaign. Without it, campaigns still track a roster, experience, condition and notes, but have no levels, automatic awards, or lists to pick advancements and injuries from.
+
+```json
+"campaign": {
+  "levels": [{ "at": 0, "name": "Recruit" }, { "at": 4, "name": "Veteran" }, { "at": 10, "name": "Champion" }],
+  "xp": { "play": 1, "win": 1, "draw": 0 },
+  "advancements": [{ "id": "deadly", "name": "Deadly", "text": "+1 Attack.", "minLevel": 2 }],
+  "injuries": [{ "id": "limp", "name": "Limp", "text": "-1\" Move." }]
+}
+```
+
+- `levels`: a model is at the highest level whose `at` experience it has reached. They must start at 0 and increase.
+- `xp`: experience offered by default when recording a game: `play` for taking part, plus `win` or `draw` on top. It can be changed per model when recording.
+- `advancements`: things a model can take. `minLevel` is the position in `levels` (0 is the first) a model must have reached before it is offered the advancement.
+- `injuries`: conditions to tick on a model. Their `text` is shown on hover.
+
+Muster does not apply these effects to profiles; it records them against the model so the person can.
+
 ## `units`
 
 ```json

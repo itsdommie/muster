@@ -13,12 +13,16 @@ interface Props {
   onInspect: (unitId: string) => void;
   /** A scenario chosen elsewhere (the Scenarios tab), to preselect when starting. */
   scenarioId?: string | null;
+  /** Names of the campaigns by id, to say which one a company list or a game belongs to. */
+  campaignNames?: Record<string, string>;
+  /** Open the campaign's record-a-game form for this finished game. */
+  onRecordInCampaign?: (gameId: string) => void;
 }
 
 const listModels = (l: ArmyList): number => l.warbands.reduce((n, w) => n + warbandModels(w), 0);
 const date = (t: number): string => new Date(t).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
 
-export function GameView({ index, lists, games, onGames, onInspect, scenarioId }: Props) {
+export function GameView({ index, lists, games, onGames, onInspect, scenarioId, campaignNames = {}, onRecordInCampaign }: Props) {
   const active = games.find((g) => !g.finishedAt);
   const finished = games.filter((g) => g.finishedAt).sort((a, b) => b.finishedAt! - a.finishedAt!);
 
@@ -27,14 +31,14 @@ export function GameView({ index, lists, games, onGames, onInspect, scenarioId }
       {active ? (
         <Tracker key={active.id} record={active} onGames={onGames} onInspect={onInspect} />
       ) : (
-        <StartCard index={index} lists={lists} scenarioId={scenarioId ?? null} onStart={(r) => onGames((all) => [...all, r])} />
+        <StartCard index={index} lists={lists} scenarioId={scenarioId ?? null} campaignNames={campaignNames} onStart={(r) => onGames((all) => [...all, r])} />
       )}
-      {finished.length > 0 && <PastGames games={finished} onDelete={(id) => onGames((all) => all.filter((g) => g.id !== id))} />}
+      {finished.length > 0 && <PastGames games={finished} campaignNames={campaignNames} onRecord={onRecordInCampaign} onDelete={(id) => onGames((all) => all.filter((g) => g.id !== id))} />}
     </div>
   );
 }
 
-function StartCard({ index, lists, scenarioId, onStart }: { index: PackIndex; lists: ArmyList[]; scenarioId: string | null; onStart: (r: GameRecord) => void }) {
+function StartCard({ index, lists, scenarioId, campaignNames, onStart }: { index: PackIndex; lists: ArmyList[]; scenarioId: string | null; campaignNames: Record<string, string>; onStart: (r: GameRecord) => void }) {
   const playable = lists.filter((l) => listModels(l) > 0);
   const [listId, setListId] = useState(playable[0]?.id ?? '');
   const [opponent, setOpponent] = useState('');
@@ -66,6 +70,9 @@ function StartCard({ index, lists, scenarioId, onStart }: { index: PackIndex; li
               {playable.map((l) => <option key={l.id} value={l.id}>{l.name} ({listModels(l)} models)</option>)}
             </select>
           </label>
+          {list?.campaign && (
+            <p className="small status ok">This is a campaign company{campaignNames[list.campaign] ? ` (${campaignNames[list.campaign]})` : ''}, so afterwards you can record the result and who was hurt in the campaign.</p>
+          )}
           {scenarios.length > 0 && (
             <label>
               Scenario <span className="muted">(optional)</span>
@@ -310,7 +317,7 @@ function ModelRow({ model: m, onSend, onInspect }: { model: GameModel; onSend: (
   );
 }
 
-function PastGames({ games, onDelete }: { games: GameRecord[]; onDelete: (id: string) => void }) {
+function PastGames({ games, campaignNames, onRecord, onDelete }: { games: GameRecord[]; campaignNames: Record<string, string>; onRecord?: ((id: string) => void) | undefined; onDelete: (id: string) => void }) {
   return (
     <section className="panel past">
       <div className="panel-head"><h2>Past games</h2></div>
@@ -329,6 +336,9 @@ function PastGames({ games, onDelete }: { games: GameRecord[]; onDelete: (id: st
                   {me.broken && ' · you broke'}{opp.broken && ' · they broke'} · {r.events.length} events
                 </span>
               </span>
+              {r.campaign && campaignNames[r.campaign] && (r.campaignRecorded
+                ? <span className="badge">in {campaignNames[r.campaign]}</span>
+                : onRecord && <button onClick={() => onRecord(r.id)}>Record in {campaignNames[r.campaign]}</button>)}
               <button className="icon" onClick={() => { if (window.confirm(`Delete the record of "${r.name}"?`)) onDelete(r.id); }} aria-label={`Delete ${r.name}`}>🗑</button>
             </li>
           );

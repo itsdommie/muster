@@ -9,3 +9,4 @@ export * from './combat.js';
 export * from './collection.js';
 export * from './tournament.js';
 export * from './backup.js';
+export * from './campaign.js';

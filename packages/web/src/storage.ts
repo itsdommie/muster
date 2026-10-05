@@ -1,4 +1,4 @@
-import type { ArmyList, Collection, GameRecord, Tournament } from '@muster/shared';
+import type { ArmyList, Campaign, Collection, GameRecord, Tournament } from '@muster/shared';
 import { parseCollection } from '@muster/shared';
 
 // Everything lives on the device. Reads and writes are wrapped because storage can be blocked or full
@@ -67,3 +67,10 @@ export const loadLastBackup = (): number | null => {
   return typeof t === 'number' ? t : null;
 };
 export const saveLastBackup = (t: number): boolean => write(LAST_BACKUP, t);
+
+const CAMPAIGNS = 'muster.campaigns.v1';
+export const loadCampaigns = (): Campaign[] => {
+  const raw = read<Campaign[]>(CAMPAIGNS);
+  return Array.isArray(raw) ? raw : [];
+};
+export const saveCampaigns = (all: Campaign[]): boolean => write(CAMPAIGNS, all);

@@ -19,14 +19,14 @@ function Summary({ data }: { data: AppData }) {
   const c = countData(data);
   return (
     <p>
-      {plural(c.lists, 'list')}, {plural(c.games, 'game')}, {plural(c.tournaments, 'tournament')}, {plural(c.models, 'model')} in your collection
+      {plural(c.lists, 'list')}, {plural(c.games, 'game')}, {plural(c.tournaments, 'tournament')}, {plural(c.campaigns, 'campaign')}, {plural(c.models, 'model')} in your collection
       {data.customPack !== null && ', and your data pack'}.
     </p>
   );
 }
 
 const skippedText = (s: Skipped): string => {
-  const parts = [s.lists && plural(s.lists, 'list'), s.games && plural(s.games, 'game'), s.tournaments && plural(s.tournaments, 'tournament'), s.collections && plural(s.collections, 'collection'), s.customPack && 'the data pack'].filter(Boolean);
+  const parts = [s.lists && plural(s.lists, 'list'), s.games && plural(s.games, 'game'), s.tournaments && plural(s.tournaments, 'tournament'), s.campaigns && plural(s.campaigns, 'campaign'), s.collections && plural(s.collections, 'collection'), s.customPack && 'the data pack'].filter(Boolean);
   return parts.join(', ');
 };
 
