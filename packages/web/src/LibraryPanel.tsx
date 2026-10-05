@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import type { PackIndex, Unit } from '@muster/shared';
+import { usePaging } from './usePaging';
 
 interface Props {
   index: PackIndex;
@@ -12,6 +13,7 @@ interface Props {
 export function LibraryPanel({ index, armyId, canAdd, onAdd, onInspect }: Props) {
   const [query, setQuery] = useState('');
   const army = index.armies.get(armyId);
+  const paging = usePaging(`${armyId}|${query}`);
 
   const units = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -22,8 +24,9 @@ export function LibraryPanel({ index, armyId, canAdd, onAdd, onInspect }: Props)
   }, [index, army, query]);
 
   const section = (kind: 'hero' | 'warrior', title: string) => {
-    const rows = units.filter((e) => e.unit.kind === kind);
-    if (rows.length === 0) return null;
+    const all = units.filter((e) => e.unit.kind === kind);
+    if (all.length === 0) return null;
+    const rows = all.slice(0, paging.limit);
     return (
       <section>
         <h3>{title}</h3>
@@ -42,6 +45,13 @@ export function LibraryPanel({ index, armyId, canAdd, onAdd, onInspect }: Props)
             </li>
           ))}
         </ul>
+        {rows.length < all.length && (
+          <p className="actions pad">
+            <span className="muted small">Showing {rows.length} of {all.length}.</span>
+            <button onClick={paging.more}>Show more</button>
+            <button onClick={paging.all}>Show all</button>
+          </p>
+        )}
       </section>
     );
   };

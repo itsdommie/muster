@@ -2,7 +2,10 @@
 
 Newest first. Each release's notes on GitHub include its section from here.
 
-## Unreleased
+## 0.3.0
+
+- **Accessibility audit.** An automated check (axe, WCAG 2.1 A and AA) now runs over every screen and dialog, light and dark, desktop and phone. It found and fixed: low-contrast text and status colours in the light theme, and wide tables that a keyboard user could not scroll (they can now be focused and scrolled with the arrow keys).
+- **Big data packs stay quick.** The Units table, the Builder's unit library and the Collection list now show 200 rows at a time with Show more / Show all, so a pack with thousands of units opens and searches in a fraction of a second instead of drawing everything at once.
 
 - **Updates for the desktop apps, off until you allow it.** The Windows installer and the Linux AppImage can look for new versions on GitHub, download them when you choose, and install them when you close the app. Muster asks once; until you say yes it makes no network requests at all. Control it any time in **About** (the footer, or Help → About). Downloads are checked against the checksum in the release.
 - New **About** dialog: version, licence, links, and the update controls.

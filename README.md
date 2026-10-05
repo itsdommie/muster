@@ -8,13 +8,23 @@ What it does today: build and validate army lists, browse every unit with a sear
 
 Targets: Windows, Linux and Android. See [PLAN.md](PLAN.md) for the roadmap and status.
 
+| Build a list | Look up units | Track a game |
+|---|---|---|
+| [![The list builder, dark theme](docs/images/builder-dark.png)](docs/images/builder-dark.png) | [![The units table with a profile open, light theme](docs/images/units-light.png)](docs/images/units-light.png) | [![The game tracker on a phone](docs/images/game-phone.png)](docs/images/game-phone.png) |
+
+Screenshots use the invented sample pack. Regenerate them with `SCREENSHOTS=1 npx playwright test e2e/screenshots.spec.ts`.
+
+## Download
+
+Installers for Windows and Linux and an APK for Android are on the [releases page](https://github.com/itsdommie/muster/releases), with `SHA256SUMS.txt` to check them against. Contributions are welcome: read [CONTRIBUTING.md](CONTRIBUTING.md) first (the short version: no publisher data, ever). Security problems: [SECURITY.md](SECURITY.md).
+
 ## Develop
 
 ```
 npm install
 npm run dev:web        # http://127.0.0.1:5173
 npm test               # engine unit tests
-npm run e2e            # Playwright against system Chromium (CHROMIUM_PATH to override)
+npm run e2e            # Playwright against system Chromium (CHROMIUM_PATH to override); includes an axe accessibility audit of every screen
 npm run typecheck
 npm run validate-pack -- packs/sample.json
 ```

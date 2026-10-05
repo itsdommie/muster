@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { armiesOfUnit, searchUnits, type PackIndex, type Unit } from '@muster/shared';
 import { useNarrow } from './useMedia';
 import { UnitCard, UnitDetail } from './UnitCard';
+import { usePaging } from './usePaging';
 
 type SortKey = 'name' | 'cost' | 'move' | 'fight' | 'shoot' | 'strength' | 'defence' | 'attacks' | 'wounds' | 'courage';
 
@@ -49,6 +50,8 @@ export function UnitsView({ index, query, onQuery, selected, onSelect, onRule }:
     return out;
   }, [units, sort]);
 
+  const paging = usePaging(`${query}|${sort.key}|${sort.dir}`);
+  const shown = rows.slice(0, paging.limit);
   const unit = selected ? index.units.get(selected) : undefined;
   const toggleSort = (key: SortKey) =>
     setSort((s) => (s.key === key ? { key, dir: s.dir === 1 ? -1 : 1 } : { key, dir: key === 'name' ? 1 : -1 }));
@@ -95,7 +98,7 @@ export function UnitsView({ index, query, onQuery, selected, onSelect, onRule }:
                 </tr>
               </thead>
               <tbody>
-                {rows.map((u) => (
+                {shown.map((u) => (
                   <tr key={u.id} className={u.id === selected ? 'on' : ''}>
                     <td className="name-col">
                       <button className="link" onClick={() => onSelect(u.id)} aria-current={u.id === selected}>
@@ -117,6 +120,13 @@ export function UnitsView({ index, query, onQuery, selected, onSelect, onRule }:
               </tbody>
             </table>
           </div>
+        )}
+        {shown.length < rows.length && (
+          <p className="actions pad">
+            <span className="muted small">Showing {shown.length} of {rows.length}.</span>
+            <button onClick={paging.more}>Show more</button>
+            <button onClick={paging.all}>Show all</button>
+          </p>
         )}
       </div>
 

@@ -3,6 +3,7 @@ import {
   STAGES, STAGE_LABELS, adjust, advance, armiesOfUnit, bought, coverage, entryOf, ownedOf, shoppingText, totals, wishlistText,
   type ArmyList, type Collection, type PackIndex, type Stage, type Unit,
 } from '@muster/shared';
+import { usePaging } from './usePaging';
 
 interface Props {
   index: PackIndex;
@@ -47,6 +48,8 @@ export function CollectionView({ index, collection, onCollection, lists, current
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [index, collection, query, army, filter]);
 
+  const paging = usePaging(`${query}|${army}|${filter}`);
+
   return (
     <div className="collection">
       <section className="panel" aria-label="Collection summary">
@@ -82,9 +85,16 @@ export function CollectionView({ index, collection, onCollection, lists, current
           <p className="muted small">Move models along with → as you build, prime and paint them.</p>
         </div>
         <ul className="unit-cards">
-          {units.map((u) => <UnitRow key={u.id} index={index} unit={u} collection={collection} onCollection={onCollection} />)}
+          {units.slice(0, paging.limit).map((u) => <UnitRow key={u.id} index={index} unit={u} collection={collection} onCollection={onCollection} />)}
           {units.length === 0 && <li className="muted pad">No units match.</li>}
         </ul>
+        {paging.limit < units.length && (
+          <p className="actions pad">
+            <span className="muted small">Showing {paging.limit} of {units.length}.</span>
+            <button onClick={paging.more}>Show more</button>
+            <button onClick={paging.all}>Show all</button>
+          </p>
+        )}
         {t.wanted > 0 && <WishlistActions index={index} collection={collection} />}
       </section>
     </div>
