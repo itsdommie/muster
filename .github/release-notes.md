@@ -21,4 +21,4 @@ Everything you make is kept on your own device. **Open Backup (top right) and sa
 
 ## What is in it
 
-Army list builder with legality checks, unit and rules reference with a search language, game tracker (wounds, Might/Will/Fate, break point, victory points, undo and resume), fight calculator (exact one-on-one, simulated squad fights), collection and painting tracker, scenarios, Swiss tournaments, and backup and restore. Works fully offline. The Android app asks for no permissions at all.
+Army list builder with legality checks, unit and rules reference with a search language, game tracker (wounds, Might/Will/Fate, break point, victory points, undo and resume), fight calculator (exact one-on-one, simulated squad fights), collection and painting tracker, campaigns, scenarios, Swiss tournaments, a data pack editor, and backup and restore. Works fully offline. The Android app asks for no permissions at all.

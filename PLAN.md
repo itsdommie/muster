@@ -1,6 +1,6 @@
-# Muster: a local-first Middle-earth Strategy Battle Game companion
+# Muster: a local-first companion for tabletop skirmish games
 
-**End goal: one easy-to-install app for everything MESBG, on Windows, Linux and Android.** Install and go, no account, no paywall, works offline. Army list building comes first, then a table-side game tracker, a rules reference, and a hobby tracker. (Working name: "Muster". Change freely.)
+**End goal: one easy-to-install app for everything about a tabletop skirmish game, on Windows, Linux and Android.** Install and go, no account, no paywall, works offline. Army list building comes first, then a table-side game tracker, a rules reference, and a hobby tracker. (Working name: "Muster". Change freely.)
 
 ## Features (build order)
 
@@ -12,21 +12,21 @@
 6. **Scenarios and tournaments.** Scenario library, pairings, Swiss rounds, scoring and standings for a local club night.
 7. **Collection and painting tracker.** Owned, built, primed, painted, wishlist, "which of my models cover this list?", "what do I still need to buy to field it?".
 8. **Campaigns.** Battle company/campaign tracker with persistent heroes, injuries and progression.
-9. **Sync and backup (optional).** Export/import a single file first. Later an optional self-hosted sync endpoint (suits your Proxmox setup), not required for any feature.
-10. **Claude advisor (optional).** Chat panel whose tool calls hit the local database and the list validator, so suggestions are real, legal and costed. It needs a key and is off by default, as in Grimoire.
+9. **Sync and backup (optional).** Export/import a single file first. Later an optional self-hosted sync endpoint (self-hosted), not required for any feature.
+10. **Claude advisor (optional).** Chat panel whose tool calls hit the local database and the list validator, so suggestions are real, legal and costed. It needs a key and is off by default.
 
 ## The decision that shapes everything: game data and IP
 
-Unit profiles, points costs and rules text belong to Games Workshop. I should not bake that data into a public repo or a distributed app without permission, and GW is notably protective of it. So:
+Unit profiles, points costs and rules text belong to a game's publisher, so they must not be baked into a public repo or a distributed app without permission. So:
 
 - **The app ships as an engine plus an open data-pack format.** The schema, validator, calculator and UI are all ours. Data lives in versioned JSON "packs" (units, wargear, special rules, army lists, scenarios).
 - **Ship a tiny original sample pack** (invented units) for tests and demos. Users load their own pack, enter their own profiles in a built-in editor, or import a pack from somewhere they are entitled to use.
 - **No GW artwork or logos.** Original branding, a clear "unofficial fan project" notice, non-commercial, no model images re-hosted.
 - This keeps the project safe to publish publicly under MIT, and the tool still works the day a points update lands (update the pack, not the app).
 
-If you'd prefer a private build with a fully populated database for personal use, that's a different and simpler path, but it must stay unpublished. Say which you want.
+A private build with a fully populated database for personal use would be a different, simpler path, but it must never be published.
 
-## Tech (reusing what Grimoire already proved)
+## Tech
 
 TypeScript throughout, npm workspaces, same layout as `~/projects/mtg`:
 
@@ -38,8 +38,8 @@ TypeScript throughout, npm workspaces, same layout as `~/projects/mtg`:
 | `mobile` | Capacitor 8 wrapper producing a signed Android APK/AAB. |
 
 - **Storage:** SQLite everywhere. `node:sqlite` on desktop, `sqlite-wasm` on Android, same schema and queries. Lists, games and collection are stored locally in the per-user data directory.
-- **No server required.** Unlike Grimoire there is no card API to ingest, so the desktop app needs no Fastify process. The UI talks to a small storage interface with two implementations (desktop, Android).
-- **Testing:** Vitest for the engine, Playwright for desktop and mobile-viewport e2e, as in Grimoire.
+- **No server required.** There is no card API to ingest, so the desktop app needs no server process. The UI talks to a small storage interface with two implementations (desktop, Android).
+- **Testing:** Vitest for the engine, Playwright for desktop and mobile-viewport e2e.
 - **CI:** GitHub Actions builds Windows on Windows, Linux on Linux, Android with the SDK. I can't test Windows installers locally on this Linux box.
 - **Dev environment note:** Node 26 and .NET are installed here. There is no Android SDK or Java yet, so I'd install those for APK builds (Phase 5).
 
@@ -61,21 +61,15 @@ Each phase ends with something usable.
 
 ## Ground rules
 
-- Non-commercial fan project; no Games Workshop assets or bundled data; clear attribution and disclaimer.
+- Non-commercial fan project; no publisher assets or bundled data; clear attribution and disclaimer.
 - Never commit secrets or tokens. Advisor key goes in the OS keychain (`safeStorage`), never on disk in plain text.
 - Windows and Linux desktop plus Android only. Users never install Node, Python or Docker.
 - Don't push to GitHub until asked.
 - The rules engine is the product: every rule it enforces gets a test.
 
-## Open questions
-
-1. **Data path:** public engine + user-supplied packs (recommended), or a private personal build with full data?
-2. **Name:** keep "Muster" or pick another?
-3. **Starting scope:** I'd begin with Phases 0 to 1 (list builder) and get you something to try quickly. OK?
-
 ## Status
 
-Data path decided: **public engine, user-supplied packs**. Name: **Muster**.
+Data path: **public engine, user-supplied packs**. Name: **Muster**.
 
 - **Phase 0: done.** npm workspaces (`shared`, `web`). Zod-validated pack schema with cross-reference checks, invented sample pack, `npm run validate-pack`.
 - **Phase 1: done.** Army list builder: warbands, options, allies, live points; validator covering warband size and leader rules, per-hero restrictions, option groups, unit caps, unique models, points limit, bow limit and ally caps; plain-text export and forgiving import; print/PDF sheet; local persistence; pack loading. Responsive (three-column desktop, tabbed phone), light and dark.

@@ -180,6 +180,9 @@ jobs:
           fi
           (cd out && sha256sum * > SHA256SUMS.txt && cat SHA256SUMS.txt)
           sed "s/{{version}}/$VERSION/g" .github/release-notes.md > notes.md
+          # What is new in this version: its section of the changelog, if there is one.
+          awk -v v="$VERSION" '$0 == "## " v {found=1; next} /^## / {found=0} found' CHANGELOG.md > changes.md
+          if [ -s changes.md ]; then { echo; echo "## What is new in $VERSION"; echo; cat changes.md; } >> notes.md; fi
           PRE=""
           case "$VERSION" in 0.*|*-*) PRE="--prerelease" ;; esac
           if gh release view "$TAG" > /dev/null 2>&1; then

@@ -2,7 +2,7 @@
   "name": "@muster/desktop",
   "productName": "Muster",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "commonjs",
   "description": "A local-first army list builder and table companion",
   "author": "Muster contributors",
