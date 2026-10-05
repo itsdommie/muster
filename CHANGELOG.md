@@ -2,7 +2,7 @@
 
 Newest first. Each release's notes on GitHub include its section from here.
 
-## Unreleased
+## 0.3.1
 
 - **A welcome card on first run.** While the invented sample pack is in use, the Builder explains that Muster ships no game data and offers to write a pack or load one from a file. "Got it" hides it for good.
 
