@@ -235,7 +235,7 @@ test.describe('tournament', () => {
     await page.getByRole('button', { name: 'Finish tournament' }).click();
     await expect(page.getByRole('region', { name: 'Progress' })).toContainText('Finished');
 
-    const standings = page.getByRole('region', { name: 'Standings' });
+    const standings = page.getByRole('region', { name: 'Standings', exact: true });
     await expect(standings.locator('tbody tr')).toHaveCount(4);
     // Two players won round 1 (3 pts) and drew round 2 (1 pt): 4 points each; the other two have 1 point.
     const pts = await standings.locator('tbody tr td:nth-child(3)').allTextContents();
@@ -279,7 +279,7 @@ test.describe('tournament', () => {
     await page.getByRole('button', { name: 'Start round 1' }).click();
     await expect(players.getByRole('button', { name: /^Remove / })).toHaveCount(0); // they have played now: drop instead
     await players.locator('li', { hasText: 'Dan' }).getByRole('button', { name: 'Drop' }).click();
-    await expect(page.getByRole('region', { name: 'Standings' })).toContainText('dropped');
+    await expect(page.getByRole('region', { name: 'Standings', exact: true })).toContainText('dropped');
 
     page.once('dialog', (d) => d.accept());
     await page.getByRole('button', { name: 'Undo round 1' }).click();

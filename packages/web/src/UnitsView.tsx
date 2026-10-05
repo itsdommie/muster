@@ -84,7 +84,7 @@ export function UnitsView({ index, query, onQuery, selected, onSelect, onRule }:
         {rows.length === 0 ? (
           <p className="muted pad">No units match.</p>
         ) : (
-          <div className="table-wrap">
+          <div className="table-wrap" tabIndex={0} role="region" aria-label="Unit results table">
             <table className="results-table">
               <thead>
                 <tr>

@@ -144,7 +144,7 @@ function Event({ t, update }: { t: Tournament; update: (fn: (t: Tournament) => T
 
       <section className="panel" aria-label="Standings">
         <div className="panel-head"><h3>Standings</h3></div>
-        <div className="table-wrap">
+        <div className="table-wrap" tabIndex={0} role="region" aria-label="Standings table">
           <table className="results-table standings">
             <thead><tr><th>#</th><th className="name-col">Player</th><th>Pts</th><th>W-D-L</th><th>VP</th><th>±</th><th title="Strength of schedule: the average points of opponents played">SoS</th></tr></thead>
             <tbody>

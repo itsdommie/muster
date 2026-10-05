@@ -149,7 +149,7 @@ function ListCheck({ index, collection, lists, currentListId }: { index: PackInd
         <p className={`status ${cov.tableReady ? 'ok' : cov.fieldable ? 'warn' : 'bad'}`} role="status">{verdict}</p>
       </div>
       {cov.lines.length > 0 && (
-        <div className="table-wrap">
+        <div className="table-wrap" tabIndex={0} role="region" aria-label="Models needed for this list">
           <table className="results-table coverage">
             <thead><tr><th className="name-col">Unit</th><th>Need</th><th>Own</th><th>Painted</th><th>Buy</th><th>Paint</th></tr></thead>
             <tbody>

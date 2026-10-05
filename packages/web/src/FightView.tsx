@@ -245,7 +245,7 @@ function SingleResult({ combat, a, b, supportA, supportB, mightA, mightB }: { co
           Takes about {r.expectedRounds.toFixed(1)} round{r.expectedRounds >= 1.05 ? 's' : ''} on average{r.unresolved > 0.0005 ? ` (some fights are still going after the cut-off)` : ''}.
         </p>
       </div>
-      <div className="table-wrap">
+      <div className="table-wrap" tabIndex={0} role="region" aria-label="First-round odds table">
         <table className="results-table first-round">
           <caption className="small muted">The first round</caption>
           <thead><tr><th className="name-col" /><th>{a.name}</th><th>{b.name}</th></tr></thead>
