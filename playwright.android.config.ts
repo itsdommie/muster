@@ -6,4 +6,7 @@ export default defineConfig({
   testDir: 'e2e-android',
   workers: 1,
   timeout: 120_000,
+  // A hosted CI emulator is sometimes killed under memory pressure mid-test (the app process vanishes with an empty crash log while Google's
+  // services die too, and which test it hits varies run to run). Retry there: a real failure fails every attempt, and each attempt starts clean.
+  retries: process.env.CI ? 2 : 0,
 });
