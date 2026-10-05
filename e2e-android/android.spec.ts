@@ -1,4 +1,4 @@
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { _android as android, expect, test, type AndroidDevice, type Page } from '@playwright/test';
 
@@ -157,7 +157,9 @@ test('is the right app, works fully offline, and asks for no permissions', async
   const page = await launch();
   expect(page.url()).toBe('https://localhost/');
   const info = await shell(`dumpsys package ${PKG}`);
-  expect(info).toContain('versionName=0.1.0');
+  // The version the app reports is the one in packages/mobile/package.json, so a release bump needs no change here.
+  const { version } = JSON.parse(readFileSync(resolve('packages/mobile/package.json'), 'utf8')) as { version: string };
+  expect(info).toContain(`versionName=${version}`);
   expect(info).not.toContain('android.permission.INTERNET');
   // On a phone the unit library is its own tab. If this fails, the numbers say whether the web view reported a desktop-sized page.
   const viewport = await page.evaluate(() => ({ width: window.innerWidth, dpr: window.devicePixelRatio, narrow: matchMedia('(max-width: 960px)').matches }));
