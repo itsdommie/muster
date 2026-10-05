@@ -105,6 +105,7 @@ async function tour(page: Page, scheme: string) {
 
   for (const [open, name] of [[() => page.getByRole('button', { name: /^Backup/ }).click(), 'backup'], [() => page.getByRole('button', { name: /Sample Pack/ }).click(), 'data pack'], [() => page.getByRole('contentinfo').getByRole('button', { name: 'About' }).click(), 'about']] as const) {
     await open();
+    await expect(page.getByRole('dialog'), `${name} dialog opens`).toBeVisible();
     await audit(page, `${scheme}: ${name} dialog`);
     await page.getByRole('dialog').getByRole('button', { name: 'Close' }).click();
   }
