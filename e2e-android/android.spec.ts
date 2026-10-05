@@ -341,6 +341,27 @@ test('a campaign can be run on the phone: roster, list and recording a game', as
   await expect(page.getByRole('region', { name: 'Roster' }).locator('.fallen')).toContainText('Fallen (1)');
 });
 
+test('a pack can be written on the phone from a pasted table and used', async () => {
+  const page = await launch();
+  await views(page).getByRole('button', { name: 'More' }).click();
+  await page.getByRole('navigation', { name: 'More sections' }).getByRole('button', { name: 'Pack' }).click();
+  await page.getByLabel('Name for the new pack').fill('Phone pack');
+  await page.getByRole('button', { name: 'Start with a table of units' }).click();
+  await page.getByLabel('Table to import').fill('Name,Kind,Cost,Army\nCaptain,hero,50,The Order\nGuard,warrior,7,The Order');
+  await page.getByRole('button', { name: 'Import', exact: true }).click();
+  const bar = page.getByRole('region', { name: 'Pack draft' });
+  await expect(bar).toContainText('ready to use');
+  await bar.getByRole('button', { name: 'Use this pack' }).click();
+  await expect(page.getByRole('button', { name: /^Phone pack$/ })).toBeVisible();
+  const sideways = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
+  expect(sideways).toBe(false);
+
+  // Saving the pack to a file goes through the system share sheet on a phone.
+  await bar.getByRole('button', { name: 'Save as a file' }).click();
+  await expect.poll(focused, { timeout: 20_000 }).toMatch(/Chooser|Resolver|Intent|sharesheet/i);
+  await backToApp();
+});
+
 test('the screen is laid out for the phone: no sideways scroll, big touch targets', async () => {
   const page = await launch();
   expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);

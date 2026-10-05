@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   addUnit, addWarband, companyToList, countData, exportText, loadPack, markRecorded, newId, newList, restore, validateList,
-  type AppData, type ArmyList, type Backup, type Campaign, type Collection, type GameRecord, type PackIndex, type RestoreMode, type Tournament, type Unit,
+  type AppData, type ArmyList, type Backup, type Campaign, type Collection, type PackDraft, type GameRecord, type PackIndex, type RestoreMode, type Tournament, type Unit,
 } from '@muster/shared';
 import sample from '../../../packs/sample.json';
 import { BackupDialog } from './BackupDialog';
@@ -16,8 +16,8 @@ import { RulesView } from './RulesView';
 import { MoreView, moreSection, type MoreSection } from './MoreView';
 import { useRoute, type View } from './route';
 import {
-  clearCustomPack, loadCampaigns, loadCollections, loadCurrent, loadCustomPack, loadGames, loadLastBackup, loadLists, loadTournaments, saveCollections, saveCurrent, saveCustomPack, saveGames,
-  saveCampaigns, saveLastBackup, saveLists, saveTournaments,
+  clearCustomPack, loadCampaigns, loadCollections, loadDraft, loadCurrent, loadCustomPack, loadGames, loadLastBackup, loadLists, loadTournaments, saveCollections, saveCurrent, saveCustomPack, saveGames,
+  saveCampaigns, saveDraft, saveLastBackup, saveLists, saveTournaments,
 } from './storage';
 import { SummaryPanel } from './SummaryPanel';
 import { UnitCard } from './UnitCard';
@@ -67,6 +67,8 @@ export function App() {
   const [tournaments, setTournaments] = useState<Tournament[]>(loadTournaments);
   const [campaigns, setCampaigns] = useState<Campaign[]>(loadCampaigns);
   const [recordGameId, setRecordGameId] = useState<string | null>(null);
+  const [packDraft, setPackDraft] = useState<PackDraft | null>(loadDraft);
+  useEffect(() => { saveDraft(packDraft); }, [packDraft]);
   const [gameScenario, setGameScenario] = useState<string | null>(null);
   const [lastMoreSub, setLastMoreSub] = useState<string | null>(null);
   useEffect(() => { if (view === 'more' && sub) setLastMoreSub(sub); }, [view, sub]);
@@ -251,6 +253,18 @@ export function App() {
     setUnitSelected(null);
     setFocusRule(null);
   };
+  /** Use a pack written in the editor. Saved lists stay as they are: those that no longer fit show their errors in the Builder. */
+  const applyPack = (draft: PackDraft): string[] | null => {
+    const r = loadPack(draft);
+    if (!r.ok) return r.errors;
+    saveCustomPack(r.index.pack);
+    if (r.index.pack.id === index.pack.id) {
+      setPack({ index: r.index, custom: true });
+      setSelected(null);
+      setUnitSelected(null);
+    } else switchPack({ index: r.index, custom: true });
+    return null;
+  };
   const loadCustom = (json: unknown): string[] | null => {
     const r = loadPack(json);
     if (!r.ok) return r.errors;
@@ -345,6 +359,7 @@ export function App() {
           waitingGames={waitingGames} onGameRecorded={(id) => setGames((all) => all.map((g) => (g.id === id ? markRecorded(g) : g)))}
           onMakeCompanyList={makeCompanyList} onOpenBuilder={() => go('builder')}
           recordGameId={recordGameId} onRecordHandled={() => setRecordGameId(null)}
+          customPackInUse={custom} packDraft={packDraft} onPackDraft={setPackDraft} allLists={lists} onApplyPack={applyPack}
         />
       </div>
 
@@ -361,7 +376,7 @@ export function App() {
           onBackedUp={(at) => { setLastBackup(at); saveLastBackup(at); }} onRestore={applyRestore}
         />
       )}
-      {dialog === 'pack' && <PackDialog index={index} custom={custom} onLoad={loadCustom} onReset={resetPack} onClose={() => setDialog(null)} />}
+      {dialog === 'pack' && <PackDialog index={index} custom={custom} onLoad={loadCustom} onReset={resetPack} onEdit={() => go('more', 'pack')} onClose={() => setDialog(null)} />}
       <PrintSheet index={index} list={list} validation={validation} />
     </div>
   );

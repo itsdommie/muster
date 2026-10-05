@@ -1,5 +1,7 @@
 # Data pack format (schema 1)
 
+You do not have to write this by hand: **More → Pack** in the app edits it with forms and can import units from a spreadsheet table (columns `name`, `kind`, `cost`, `move`, `fight`, `shoot`, `strength`, `defence`, `attacks`, `wounds`, `courage`, `might`, `will`, `fate`, `rules`, `wargear`, `keywords`, `army`; single-letter headers such as `M F Sh S D A W C` also work). The file format below is what it produces.
+
 A pack is one JSON file describing a game: its list-building constants, wargear, special rules, units and armies. Muster validates it on load and refuses packs with dangling references, with readable errors.
 
 Check a pack from the command line:

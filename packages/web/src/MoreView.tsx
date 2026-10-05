@@ -1,10 +1,11 @@
-import type { ArmyList, Campaign, Collection, GameRecord, PackIndex, Tournament } from '@muster/shared';
+import type { ArmyList, Campaign, Collection, GameRecord, PackDraft, PackIndex, Tournament } from '@muster/shared';
 import { CampaignView } from './CampaignView';
+import { PackEditor } from './PackEditor';
 import { CollectionView } from './CollectionView';
 import { ScenariosView } from './ScenariosView';
 import { TournamentView } from './TournamentView';
 
-export const MORE_SECTIONS = [['collection', 'Collection'], ['campaign', 'Campaign'], ['scenarios', 'Scenarios'], ['tournament', 'Tournament']] as const;
+export const MORE_SECTIONS = [['collection', 'Collection'], ['campaign', 'Campaign'], ['scenarios', 'Scenarios'], ['tournament', 'Tournament'], ['pack', 'Pack']] as const;
 export type MoreSection = (typeof MORE_SECTIONS)[number][0];
 
 export const moreSection = (sub: string | null): MoreSection => MORE_SECTIONS.find(([id]) => id === sub)?.[0] ?? 'collection';
@@ -28,6 +29,11 @@ interface Props {
   onOpenBuilder: () => void;
   recordGameId: string | null;
   onRecordHandled: () => void;
+  customPackInUse: boolean;
+  packDraft: PackDraft | null;
+  onPackDraft: (d: PackDraft | null) => void;
+  allLists: ArmyList[];
+  onApplyPack: (d: PackDraft) => string[] | null;
 }
 
 export function MoreView(p: Props) {
@@ -46,6 +52,9 @@ export function MoreView(p: Props) {
         />
       )}
       {p.section === 'scenarios' && <ScenariosView index={p.index} onPlay={p.onPlayScenario} />}
+      {p.section === 'pack' && (
+        <PackEditor index={p.index} customInUse={p.customPackInUse} draft={p.packDraft} onDraft={p.onPackDraft} lists={p.allLists} onApply={p.onApplyPack} />
+      )}
       {p.section === 'tournament' && <TournamentView tournaments={p.tournaments} onTournaments={p.onTournaments} />}
     </div>
   );

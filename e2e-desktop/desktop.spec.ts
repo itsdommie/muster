@@ -219,6 +219,31 @@ test('a campaign company is kept across a restart and makes a list', async () =>
   await app.close();
 });
 
+test('a pack written in the editor is kept across a restart', async () => {
+  const userData = mkdtempSync(join(tmpdir(), 'muster-data-'));
+  let app = await launch(userData);
+  let page = await app.firstWindow();
+  await page.getByRole('navigation', { name: 'Views' }).getByRole('button', { name: 'More' }).click();
+  await page.getByRole('navigation', { name: 'More sections' }).getByRole('button', { name: 'Pack' }).click();
+  await page.getByLabel('Name for the new pack').fill('Desktop pack');
+  await page.getByRole('button', { name: 'Start with a table of units' }).click();
+  await page.getByLabel('Table to import').fill('Name,Kind,Cost,Army\nCaptain,hero,50,The Order\nGuard,warrior,7,The Order');
+  await page.getByRole('button', { name: 'Import', exact: true }).click();
+  await expect(page.getByRole('region', { name: 'Pack draft' })).toContainText('ready to use');
+  await page.getByRole('button', { name: 'Use this pack' }).click();
+  await expect(page.getByRole('button', { name: /^Desktop pack$/ })).toBeVisible();
+  await app.close();
+
+  app = await launch(userData);
+  page = await app.firstWindow();
+  await expect(page.getByRole('button', { name: /^Desktop pack$/ })).toBeVisible(); // still the pack in use
+  await expect(page.getByRole('heading', { name: 'The Order', level: 2 })).toBeVisible();
+  await page.getByRole('navigation', { name: 'Views' }).getByRole('button', { name: 'More' }).click();
+  await page.getByRole('navigation', { name: 'More sections' }).getByRole('button', { name: 'Pack' }).click();
+  await expect(page.getByRole('region', { name: 'Pack draft' })).toContainText('Desktop pack'); // and the draft is still there to carry on with
+  await app.close();
+});
+
 test('a game in progress resumes after the app is closed and reopened', async () => {
   const userData = mkdtempSync(join(tmpdir(), 'muster-data-'));
   let app = await launch(userData);

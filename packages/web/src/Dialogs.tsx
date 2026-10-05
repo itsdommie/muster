@@ -28,8 +28,8 @@ export function ImportDialog({ index, onImport, onClose }: { index: PackIndex; o
   );
 }
 
-export function PackDialog({ index, custom, onLoad, onReset, onClose }: {
-  index: PackIndex; custom: boolean; onLoad: (json: unknown) => string[] | null; onReset: () => void; onClose: () => void;
+export function PackDialog({ index, custom, onLoad, onReset, onEdit, onClose }: {
+  index: PackIndex; custom: boolean; onLoad: (json: unknown) => string[] | null; onReset: () => void; onEdit: () => void; onClose: () => void;
 }) {
   const [errors, setErrors] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
@@ -63,6 +63,7 @@ export function PackDialog({ index, custom, onLoad, onReset, onClose }: {
             {busy ? 'Reading…' : 'Load pack file…'}
             <input type="file" accept="application/json,.json" hidden onChange={(e) => pick(e.target.files?.[0])} />
           </label>
+          <button onClick={() => { onEdit(); onClose(); }}>Write or edit a pack…</button>
           {custom && <button onClick={() => { onReset(); onClose(); }}>Back to sample pack</button>}
         </div>
         {errors.length > 0 && (

@@ -10,3 +10,5 @@ export * from './collection.js';
 export * from './tournament.js';
 export * from './backup.js';
 export * from './campaign.js';
+export * as packEdit from './packedit.js';
+export type { PackDraft } from './packedit.js';

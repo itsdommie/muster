@@ -1,4 +1,4 @@
-import type { ArmyList, Campaign, Collection, GameRecord, Tournament } from '@muster/shared';
+import type { ArmyList, Campaign, Collection, GameRecord, PackDraft, Tournament } from '@muster/shared';
 import { parseCollection } from '@muster/shared';
 
 // Everything lives on the device. Reads and writes are wrapped because storage can be blocked or full
@@ -74,3 +74,14 @@ export const loadCampaigns = (): Campaign[] => {
   return Array.isArray(raw) ? raw : [];
 };
 export const saveCampaigns = (all: Campaign[]): boolean => write(CAMPAIGNS, all);
+
+const DRAFT = 'muster.packdraft.v1';
+/** The data pack being edited, kept so unfinished work survives a reload. */
+export const loadDraft = (): PackDraft | null => {
+  const d = read<PackDraft>(DRAFT);
+  return d && typeof d === 'object' && Array.isArray(d.units) && Array.isArray(d.armies) ? d : null;
+};
+export const saveDraft = (d: PackDraft | null): boolean => {
+  if (d !== null) return write(DRAFT, d);
+  try { localStorage.removeItem(DRAFT); return true; } catch { return false; }
+};
