@@ -2,6 +2,10 @@
 
 Newest first. Each release's notes on GitHub include its section from here.
 
+## Unreleased
+
+- **A welcome card on first run.** While the invented sample pack is in use, the Builder explains that Muster ships no game data and offers to write a pack or load one from a file. "Got it" hides it for good.
+
 ## 0.3.0
 
 - **Accessibility audit.** An automated check (axe, WCAG 2.1 A and AA) now runs over every screen and dialog, light and dark, desktop and phone. It found and fixed: low-contrast text and status colours in the light theme, and wide tables that a keyboard user could not scroll (they can now be focused and scrolled with the arrow keys).

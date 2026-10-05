@@ -87,6 +87,11 @@ test.afterEach(async ({}, testInfo) => {
     `crash log:\n${(await grab('logcat -d -b crash -t 40')) || '(empty)'}`,
     `process deaths and ANRs:\n${(await grab(`logcat -d -t 600 | grep -iE "has died|Process ${PKG}|ANR in|FATAL|Force finishing|am_kill|am_proc_died|lowmemorykiller" | tail -15`)) || '(none)'}`,
   ];
+  // What the web view was showing: a failed click is often "the screen was not what the test assumed".
+  const shown = currentPage
+    ? await withTimeout(currentPage.evaluate(() => `${location.hash || '(no hash)'}\n${(document.querySelector('.view:not([hidden])') as HTMLElement | null)?.innerText.slice(0, 1200) ?? document.body.innerText.slice(0, 1200)}`), 5_000, 'reading the page').catch((e: unknown) => `(could not read the page: ${String(e).split('\n')[0]})`)
+    : '(no page)';
+  lines.push(`page errors:\n${pageErrors.slice(-10).join('\n') || '(none)'}`, `visible screen:\n${shown}`);
   console.log(`\n--- device state after "${testInfo.title}" failed ---\n${lines.join('\n')}\n---`);
 });
 
@@ -98,6 +103,9 @@ test.afterAll(async () => {
  * Start the app from a clean slate (or, with `fresh: false`, from its saved data), and attach to its web view. Attaching occasionally
  * misses a freshly started process on a slow machine, so a missing web view means "start the app again", not "the app is broken".
  */
+let currentPage: Page | null = null;
+const pageErrors: string[] = [];
+
 async function launch(fresh = true): Promise<Page> {
   let lastError: unknown;
   for (let attempt = 0; attempt < 3; attempt++) {
@@ -108,6 +116,10 @@ async function launch(fresh = true): Promise<Page> {
     try {
       const view = await withTimeout(device.webView({ pkg: PKG }, { timeout: 20_000 }), 30_000, 'finding the web view');
       const page = await withTimeout(view.page(), 30_000, 'opening the page');
+      pageErrors.length = 0;
+      page.on('pageerror', (e) => pageErrors.push(`pageerror: ${e.message}`));
+      page.on('console', (m) => { if (m.type() === 'error') pageErrors.push(`console: ${m.text()}`); });
+      currentPage = page;
       await expect(page.getByRole('heading', { name: 'Muster', level: 1 })).toBeVisible();
       // Being attachable is not the same as being on screen: key presses and system dialogs need the app to hold the focus.
       await expect.poll(focused, { timeout: 15_000 }).toContain(PKG);

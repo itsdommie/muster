@@ -8,7 +8,7 @@ const OUT = 'docs/images';
 
 async function buildList(page: Page) {
   await page.goto('/');
-  await page.evaluate(() => localStorage.clear());
+  await page.evaluate(() => { localStorage.clear(); localStorage.setItem('muster.welcome.v1', 'true'); });
   await page.goto('/#/builder');
   await page.reload();
   await page.getByRole('button', { name: '+ Warband' }).click();

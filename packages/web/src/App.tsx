@@ -16,8 +16,9 @@ import { PrintSheet } from './PrintSheet';
 import { RulesView } from './RulesView';
 import { MoreView, moreSection, type MoreSection } from './MoreView';
 import { useRoute, type View } from './route';
+import { Welcome } from './Welcome';
 import {
-  clearCustomPack, loadCampaigns, loadCollections, loadDraft, loadCurrent, loadCustomPack, loadGames, loadLastBackup, loadLists, loadTournaments, saveCollections, saveCurrent, saveCustomPack, saveGames,
+  clearCustomPack, loadCampaigns, loadCollections, loadDraft, loadCurrent, loadCustomPack, loadGames, loadLastBackup, loadLists, loadTournaments, loadWelcomeDismissed, saveWelcomeDismissed, saveCollections, saveCurrent, saveCustomPack, saveGames,
   saveCampaigns, saveDraft, saveLastBackup, saveLists, saveTournaments,
 } from './storage';
 import { SummaryPanel } from './SummaryPanel';
@@ -63,6 +64,7 @@ export function App() {
   // The desktop Help menu opens About.
   useEffect(() => window.muster?.onMenu?.((action) => { if (action === 'about') setDialog('about'); }), []);
   const [lastBackup, setLastBackup] = useState<number | null>(loadLastBackup);
+  const [welcomed, setWelcomed] = useState(loadWelcomeDismissed);
   const [copied, setCopied] = useState(false);
   const [saveFailed, setSaveFailed] = useState(false);
   const copyTimer = useRef<number | undefined>(undefined);
@@ -307,6 +309,13 @@ export function App() {
       {saveFailed && <p className="banner">Browser storage is unavailable, so changes will be lost when you close the app. Use “Copy as text” to keep a list.</p>}
 
       <div className="view" hidden={view !== 'builder'}>
+        {!custom && !welcomed && (
+          <Welcome
+            onWrite={() => go('more', 'pack')}
+            onLoad={() => setDialog('pack')}
+            onDismiss={() => { saveWelcomeDismissed(); setWelcomed(true); }}
+          />
+        )}
         <div className="list-picker">
           <select value={list.id} onChange={(e) => { setCurrentId(e.target.value); setSelected(null); }} aria-label="Saved lists">
             {mine.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}

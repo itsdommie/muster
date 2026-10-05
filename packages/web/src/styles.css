@@ -86,6 +86,10 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, monospace; 
 .pack-btn { max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .banner { background: color-mix(in srgb, var(--warn) 18%, var(--surface)); border: 1px solid var(--warn); border-radius: var(--radius); padding: .5rem .75rem; }
+.welcome { background: var(--surface); border: 1px solid var(--accent); border-radius: var(--radius); padding: .75rem 1rem; }
+.welcome h2 { margin: 0 0 .35rem; font-size: 1.05rem; }
+.welcome p { margin: 0; }
+.welcome .actions { padding: .75rem 0 0; }
 
 .tabs { display: none; }
 .layout { display: grid; grid-template-columns: minmax(250px, 300px) minmax(0, 1fr) minmax(240px, 290px); gap: 12px; align-items: start; flex: 1; }

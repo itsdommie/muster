@@ -61,6 +61,11 @@ export const loadTournaments = (): Tournament[] => {
 };
 export const saveTournaments = (all: Tournament[]): boolean => write(TOURNAMENTS, all);
 
+/** Whether the welcome card on the Builder has been dismissed. */
+const WELCOME = 'muster.welcome.v1';
+export const loadWelcomeDismissed = (): boolean => read<boolean>(WELCOME) === true;
+export const saveWelcomeDismissed = (): boolean => write(WELCOME, true);
+
 const LAST_BACKUP = 'muster.lastBackup.v1';
 export const loadLastBackup = (): number | null => {
   const t = read<number>(LAST_BACKUP);
