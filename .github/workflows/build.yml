@@ -28,7 +28,7 @@ jobs:
   android:
     name: Android APK and emulator tests
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 50
     env:
       # Present only if the signing key has been added to the repository's secrets (see README). Without it, releases carry the debug APK.
       ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
@@ -63,7 +63,9 @@ jobs:
         with:
           api-level: 34
           arch: x86_64
-          target: google_apis
+          # The plain Android image (no Google apps): the tests need only the system share sheet, print service, file picker and WebView, and
+          # the Google image's background services overloaded a hosted runner until even SystemUI stopped responding.
+          target: default
           # The default (2.5 GB, 2 cores) is tight with Google's services running: Android's low-memory killer was seen ending the app
           # mid-test. The runner has 16 GB and 4 cores.
           ram-size: 4096M

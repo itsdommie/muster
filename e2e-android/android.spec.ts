@@ -44,7 +44,7 @@ test.beforeAll(async () => {
   device = await readyDevice();
   // Keep the screen on and unlocked for the whole run: a key press or a share sheet needs the app to be the window on top. These are
   // best-effort and time-limited, so a command that hangs on some image costs seconds and is named in the log, not the whole run.
-  for (const cmd of ['svc power stayon true', 'settings put system screen_off_timeout 2147483647', 'input keyevent KEYCODE_WAKEUP', 'wm dismiss-keyguard']) {
+  for (const cmd of ['svc power stayon true', 'settings put system screen_off_timeout 2147483647', 'settings put global hide_error_dialogs 1', 'input keyevent KEYCODE_WAKEUP', 'wm dismiss-keyguard']) {
     const started = Date.now();
     const done = await Promise.race([device.shell(cmd).then(() => true, () => false), new Promise<boolean>((r) => setTimeout(() => r(false), 20_000))]);
     console.log(`setup: ${cmd} -> ${done ? 'ok' : 'did not finish'} (${Date.now() - started} ms)`);
@@ -65,9 +65,9 @@ test.beforeAll(async () => {
     try {
       await device.shell(`am force-stop ${PKG}`);
       await device.shell(`am start -n ${PKG}/.MainActivity`);
-      const view = await withTimeout(device.webView({ pkg: PKG }, { timeout: 90_000 }), 100_000, 'finding the web view');
-      const warm = await withTimeout(view.page(), 60_000, 'opening the page');
-      await expect(warm.getByRole('heading', { name: 'Muster', level: 1 })).toBeVisible({ timeout: 60_000 });
+      const view = await withTimeout(device.webView({ pkg: PKG }, { timeout: 60_000 }), 70_000, 'finding the web view');
+      const warm = await withTimeout(view.page(), 45_000, 'opening the page');
+      await expect(warm.getByRole('heading', { name: 'Muster', level: 1 })).toBeVisible({ timeout: 45_000 });
       console.log(`setup: warm-up attempt ${attempt} ok (${Math.round((Date.now() - started) / 1000)} s)`);
       break;
     } catch (error) {
